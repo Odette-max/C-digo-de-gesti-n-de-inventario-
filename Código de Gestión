@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koss Jeans – Inventario</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background-color: #f4f6f8;
+      color: #000;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      padding: 10px 20px;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    nav {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    nav span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      background: #eee;
+      border-radius: 20px;
+      padding: 6px 12px;
+      gap: 8px;
+    }
+
+    .search input {
+      border: none;
+      background: transparent;
+      outline: none;
+    }
+
+    /* ===== SUB MENU ===== */
+    .submenu {
+      display: flex;
+      gap: 12px;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      background: #e0e0e0;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    /* ===== ACTION BAR ===== */
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .actions-left {
+      background: #e0e0e0;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+
+    .actions-right {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-primary {
+      background: #0b1c4d;
+      color: white;
+    }
+
+    /* ===== TABLE ===== */
+    .table-container {
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 8px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    th {
+      background: #e6e6e6;
+      font-weight: bold;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      nav span {
+        font-size: 12px;
+      }
+
+      table {
+        font-size: 10px;
+      }
+
+      .actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="top-bar">
+      <div class="logo">Koss Jeans</div>
+
+      <nav>
+        <span>🏠 Inicio</span>
+        <span>🛒 Ventas</span>
+        <span>📦 Inventario</span>
+        <span>📝 Reporte</span>
+        <span>👤 Usuario</span>
+        <span>✔ Permisos</span>
+        <span>🔎 Consulta</span>
+        <span>•••</span>
+      </nav>
+
+      <div class="search">
+        <input type="text" placeholder="Buscar" />
+        🔍
+      </div>
+    </div>
+  </header>
+
+  <!-- SUBMENU -->
+  <div class="submenu">
+    <div class="chip">Productos</div>
+    <div class="chip">Descuentos</div>
+    <div class="chip">Clientes</div>
+    <div class="chip">Proveedores</div>
+    <div class="chip">Ubicación</div>
+    <div class="chip">Devoluciones</div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <div class="actions-left">Órdenes</div>
+    <div class="actions-right">
+      ⬇️ 🖨 ✏️ 🗑
+      <button class="btn btn-primary">+ Orden de Venta</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>PRODUCTO</th>
+          <th>CÓDIGO</th>
+          <th>PRECIO</th>
+          <th>CANTIDAD</th>
+          <th>EXISTENCIA</th>
+          <th>ENTRADA</th>
+          <th>SALIDA</th>
+          <th>UNIDADES RESTANTES</th>
+          <th>FALTANTES</th>
+          <th>SOBRANTES</th>
+          <th>FECHA DE ENTREGA</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+        <tr><td colspan="11">&nbsp;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</body>
+</html>
