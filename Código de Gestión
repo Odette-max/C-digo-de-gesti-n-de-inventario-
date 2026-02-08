@@ -1,240 +1,683 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Koss Jeans – Inventario</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, Helvetica, sans-serif;
+import { useState, useEffect } from "react";
+import fondo from "./assets/levis.jpg";
+import guiasPDF from "./assets/guias.pdf";
+
+/* =========================
+   COMPONENTE LOGIN
+========================= */
+function Login({ setVista, setUsuario }) {
+  const [modo, setModo] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+  const entrar = () => {
+    const user = usuarios.find(
+      u => u.email === email && u.password === password
+    );
+    if (!user) {
+      setMsg("Usuario o contraseña incorrectos");
+      return;
     }
+    localStorage.setItem("usuarioActivo", JSON.stringify(user));
+    setUsuario(user);
+    setVista("home");
+  };
 
-    body {
-      margin: 0;
-      background-color: #f4f6f8;
-      color: #000;
+  const registrar = () => {
+    if (usuarios.find(u => u.email === email)) {
+      setMsg("El usuario ya existe");
+      return;
     }
+    const nuevo = { email, password };
+    localStorage.setItem("usuarios", JSON.stringify([...usuarios, nuevo]));
+    setMsg("Cuenta creada, ahora inicia sesión");
+    setModo("login");
+  };
 
-    /* ===== HEADER ===== */
-    header {
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-      padding: 10px 20px;
-    }
+  return (
+    <div className="flex flex-col items-center justify-center h-full">
+      <h2 className="text-2xl font-bold text-blue-800 mb-4">
+        {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
+      </h2>
 
-    .top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-    }
+      <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-sm">
+        <input
+          className="border p-2 w-full mb-3 rounded"
+          placeholder="Correo"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
 
-    .logo {
-      font-size: 22px;
-      font-weight: bold;
-    }
+        <input
+          type="password"
+          className="border p-2 w-full mb-3 rounded"
+          placeholder="Contraseña"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
 
-    nav {
-      display: flex;
-      gap: 18px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+        {msg && <p className="text-red-500 text-sm mb-2">{msg}</p>}
 
-    nav span {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-      cursor: pointer;
-    }
+        {modo === "login" ? (
+          <button onClick={entrar} className="bg-blue-700 text-white w-full py-2 rounded">
+            Entrar
+          </button>
+        ) : (
+          <button onClick={registrar} className="bg-blue-700 text-white w-full py-2 rounded">
+            Crear cuenta
+          </button>
+        )}
 
-    .search {
-      display: flex;
-      align-items: center;
-      background: #eee;
-      border-radius: 20px;
-      padding: 6px 12px;
-      gap: 8px;
-    }
+        <p className="text-sm text-center mt-3">
+          {modo === "login" ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}
+          <button
+            className="text-blue-700 ml-1"
+            onClick={() => {
+              setModo(modo === "login" ? "register" : "login");
+              setMsg("");
+            }}
+          >
+            {modo === "login" ? "Crear" : "Entrar"}
+          </button>
+        </p>
 
-    .search input {
-      border: none;
-      background: transparent;
-      outline: none;
-    }
-
-    /* ===== SUB MENU ===== */
-    .submenu {
-      display: flex;
-      gap: 12px;
-      padding: 12px 20px;
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-      flex-wrap: wrap;
-    }
-
-    .chip {
-      background: #e0e0e0;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      cursor: pointer;
-    }
-
-    /* ===== ACTION BAR ===== */
-    .actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-      background: #fff;
-      border-bottom: 1px solid #ddd;
-    }
-
-    .actions-left {
-      background: #e0e0e0;
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-    }
-
-    .actions-right {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-    }
-
-    .btn {
-      padding: 8px 14px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    .btn-primary {
-      background: #0b1c4d;
-      color: white;
-    }
-
-    /* ===== TABLE ===== */
-    .table-container {
-      padding: 20px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    th, td {
-      border: 1px solid #999;
-      padding: 8px;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    th {
-      background: #e6e6e6;
-      font-weight: bold;
-    }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-      nav span {
-        font-size: 12px;
-      }
-
-      table {
-        font-size: 10px;
-      }
-
-      .actions {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-      }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- HEADER -->
-  <header>
-    <div class="top-bar">
-      <div class="logo">Koss Jeans</div>
-
-      <nav>
-        <span>🏠 Inicio</span>
-        <span>🛒 Ventas</span>
-        <span>📦 Inventario</span>
-        <span>📝 Reporte</span>
-        <span>👤 Usuario</span>
-        <span>✔ Permisos</span>
-        <span>🔎 Consulta</span>
-        <span>•••</span>
-      </nav>
-
-      <div class="search">
-        <input type="text" placeholder="Buscar" />
-        🔍
+        <button
+          onClick={() => setVista("home")}
+          className="text-gray-400 text-sm mt-3 w-full"
+        >
+          ← Volver
+        </button>
       </div>
     </div>
-  </header>
+  );
+}
 
-  <!-- SUBMENU -->
-  <div class="submenu">
-    <div class="chip">Productos</div>
-    <div class="chip">Descuentos</div>
-    <div class="chip">Clientes</div>
-    <div class="chip">Proveedores</div>
-    <div class="chip">Ubicación</div>
-    <div class="chip">Devoluciones</div>
-  </div>
+/* =========================
+   COMPONENTE HOME
+========================= */
+function Home({ setVista, usuario, setUsuario }) {
+    // 🔐 Rol del usuario (simple)
+  const color = usuario?.email.includes("admin")
+    ? "bg-red-600"
+    : "bg-blue-600";
 
-  <!-- ACTIONS -->
-  <div class="actions">
-    <div class="actions-left">Órdenes</div>
-    <div class="actions-right">
-      ⬇️ 🖨 ✏️ 🗑
-      <button class="btn btn-primary">+ Orden de Venta</button>
+  // 📅 Fecha de inicio de sesión
+  const fecha = new Date().toLocaleDateString();
+
+  const productos = JSON.parse(localStorage.getItem("productos")) || [];
+
+  const totalProductos = productos.length;
+  const totalStock = productos.reduce((acc, p) => acc + Number(p.stock), 0);
+  const valorInventario = productos.reduce(
+    (acc, p) => acc + Number(p.stock) * Number(p.precio),
+    0
+  );
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("usuarioActivo");
+    setUsuario(null);
+  };
+
+  function Card({ titulo, color, onClick, className = "" }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`${color} ${className} w-full h-20 text-lg font-semibold rounded-xl shadow hover:scale-105 transition`}
+    >
+      {titulo}
+    </button>
+  );
+}
+
+
+  return (
+    <div className="text-center">
+      <div className="flex justify-end mb-4">
+        {usuario ? (
+          <button onClick={cerrarSesion} className="text-red-600 border px-4 py-2 rounded">
+            Cerrar sesión
+          </button>
+        ) : (
+          <button onClick={() => setVista("login")} className="border px-4 py-2 rounded">
+            Iniciar sesión / Crear cuenta
+          </button>
+        )}
+      </div>
+
+        {/* BIENVENIDA */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold text-blue-700">
+          👋 Bienvenido a Koss Jeans
+        </h1>
+      </div>
+
+       <p className="text-gray-500 mb-8">Sistema de Inventarios y Ventas</p>
+
+      {/* TARJETA DE USUARIO */}
+{usuario && (
+  <div className="max-w-md mx-auto mb-6 bg-white border border-gray-200 rounded-xl shadow p-4 flex items-center gap-4">
+    
+     <div
+  className={`w-12 h-12 rounded-full ${color} text-white flex items-center justify-center text-xl font-bold`}
+>
+  👤
+</div>
+
+    <div className="text-left">
+      <p className="text-sm text-gray-500">Usuario activo</p>
+      <p className="font-semibold">{usuario.email}</p>
+      <p className="text-green-600 text-xs">● Sesión activa</p>
+      <p className="text-xs text-gray-400">
+  Inicio de sesión: {fecha}
+</p>
     </div>
+
+  </div>
+)}
+
+      {/* TARJETAS DE RESUMEN */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-4xl mx-auto">
+
+  <div className="bg-blue-100 text-blue-800 p-6 rounded-xl shadow">
+    <p className="text-sm">📦 Productos</p>
+    <p className="text-3xl font-bold">{totalProductos}</p>
   </div>
 
-  <!-- TABLE -->
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>PRODUCTO</th>
-          <th>CÓDIGO</th>
-          <th>PRECIO</th>
-          <th>CANTIDAD</th>
-          <th>EXISTENCIA</th>
-          <th>ENTRADA</th>
-          <th>SALIDA</th>
-          <th>UNIDADES RESTANTES</th>
-          <th>FALTANTES</th>
-          <th>SOBRANTES</th>
-          <th>FECHA DE ENTREGA</th>
+  <div className="bg-green-100 text-green-800 p-6 rounded-xl shadow">
+    <p className="text-sm">🧮 Stock total</p>
+    <p className="text-3xl font-bold">{totalStock}</p>
+  </div>
+
+  <div className="bg-purple-100 text-purple-800 p-6 rounded-xl shadow">
+    <p className="text-sm">💰 Valor inventario</p>
+    <p className="text-3xl font-bold">
+      ${valorInventario.toLocaleString()}
+    </p>
+  </div>
+</div>
+
+    </div>
+  );
+}
+
+/* =========================
+   INVENTARIO
+========================= */
+function Inventario({ setVista }) {
+  const STOCK_BAJO = 5;
+  const [mostrarAlerta, setMostrarAlerta] = useState(false);
+const [cantidadBaja, setCantidadBaja] = useState(0);
+  const [productos, setProductos] = useState([]);
+  const [nombre, setNombre] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [stock, setStock] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [talla, setTalla] = useState("");
+
+  useEffect(() => {
+  const data = JSON.parse(localStorage.getItem("productos")) || [];
+  setProductos(data);
+
+  const bajos = data.filter(p => p.stock <= STOCK_BAJO);
+
+  if (bajos.length > 0) {
+    setCantidadBaja(bajos.length);
+    setMostrarAlerta(true);
+  }
+}, []);
+
+
+
+  const agregar = () => {
+    if (!nombre || !precio || !stock || !talla) return;
+    const nuevo = {
+    id: Date.now(),
+    nombre,
+    talla,
+    precio,
+    stock
+  };
+    const data = [...productos, nuevo];
+    localStorage.setItem("productos", JSON.stringify(data));
+    setProductos(data);
+    setNombre(""); setPrecio(""); setStock("");
+  };
+
+  const eliminar = (id) => {
+  const data = productos.filter(p => p.id !== id);
+  localStorage.setItem("productos", JSON.stringify(data));
+  setProductos(data);
+};
+
+  const productosFiltrados = productos.filter(p =>
+  p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+);
+
+{mostrarAlerta && (
+  <div className="mb-4 flex items-center justify-between bg-red-100 border-l-4 border-red-600 text-red-800 p-4 rounded-lg shadow">
+    
+    <div className="flex items-center gap-3">
+      <span className="text-2xl">⚠️</span>
+      <div>
+        <p className="font-bold">Stock bajo detectado</p>
+        <p className="text-sm">
+          Hay {cantidadBaja} producto(s) con stock crítico
+        </p>
+      </div>
+    </div>
+
+    <button
+      onClick={() => setMostrarAlerta(false)}
+      className="text-red-600 hover:text-red-800 font-bold text-xl"
+    >
+      ✕
+    </button>
+  </div>
+)}
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Inventario</h2>
+
+      <input className="border p-2 mr-2" placeholder="Producto" value={nombre} onChange={e => setNombre(e.target.value)} />
+      <input className="border p-2 mr-2" placeholder="Precio" value={precio} onChange={e => setPrecio(e.target.value)} />
+      <input className="border p-2 mr-2" placeholder="Stock" value={stock} onChange={e => setStock(e.target.value)} />
+      <input className="border p-2 mr-2" placeholder="Talla (Ej: S, M, L, 28, 30)" value={talla} onChange={e => setTalla(e.target.value)}/>
+
+      <button onClick={agregar} className="bg-blue-700 text-white px-4 py-2 rounded">Agregar</button>
+      
+      <input
+  type="text"
+  placeholder="🔍 Buscar producto..."
+  value={busqueda}
+  onChange={e => setBusqueda(e.target.value)}
+  className="border p-2 rounded w-full md:w-1/3 mb-4"
+/>
+
+      <div className="overflow-x-auto mt-6">
+  <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+    <thead className="bg-blue-700 text-white">
+      <tr>
+        <th className="p-3 text-left">Producto</th>
+        <th className="p-3 text-center">Precio</th>
+        <th className="p-3 text-center">Stock</th>
+        <th className="p-3 text-center">Talla</th>
+        <th className="p-3 text-center"></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {productosFiltrados.map(p => (
+
+        <tr 
+        key={p.id} 
+       className={`border-b ${
+    p.stock <= STOCK_BAJO ? "bg-red-100" : "hover:bg-gray-100"
+  }`}>
+          {/* PRODUCTO */}
+  <td className="p-3">{p.nombre}</td>
+
+
+  {/* PRECIO */}
+  <td className="p-3 text-center">${p.precio}</td>
+
+   {/* STOCK (con alerta dentro, NO otra columna) */}
+  <td className="p-3 text-center">
+    {p.stock}
+    {p.stock <= 5 && (
+      <div className="text-red-600 text-xs font-semibold">
+        ⚠ Stock bajo
+      </div>
+    )}
+  </td>
+
+  {/* TALLA */}
+  <td className="p-3 text-center">{p.talla || "-"}</td>
+
+          <td className="p-3 text-center space-x-2">
+            {/* 🟢 VENDER */}
+            <button
+              onClick={() => {
+                const data = productos.map(prod =>
+                  prod.id === p.id && prod.stock > 0
+                    ? { ...prod, stock: prod.stock - 1 }
+                    : prod
+                );
+
+                localStorage.setItem("productos", JSON.stringify(data));
+                setProductos(data);
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+            >
+              Vender
+            </button>
+
+            {/* 🔴 ELIMINAR */}
+            <button
+              onClick={() => eliminar(p.id)}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+            >
+              Eliminar
+            </button>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-        <tr><td colspan="11">&nbsp;</td></tr>
-      </tbody>
-    </table>
-  </div>
+      ))}
+    </tbody>
+  </table>
+</div>
 
-</body>
-</html>
+
+    </>
+  );
+}
+
+/* =========================
+   VENTAS
+========================= */
+function Ventas({ setVista }) {
+  const [productos, setProductos] = useState([]);
+
+  useEffect(() => {
+    setProductos(JSON.parse(localStorage.getItem("productos")) || []);
+  }, []);
+
+  const vender = id => {
+    const data = productos.map(p =>
+      p.id === id && p.stock > 0 ? { ...p, stock: p.stock - 1 } : p
+    );
+    localStorage.setItem("productos", JSON.stringify(data));
+    setProductos(data);
+  };
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Ventas</h2>
+
+      {/* 📄 GUIAS PDF */}
+<div className="mb-6 p-4 border rounded-xl bg-gray-50">
+  <h3 className="font-bold mb-2">📄 Guías y Documentos</h3>
+
+  <a
+    href={guiasPDF}
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-block bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+  >
+    📥 Ver / Descargar PDF
+  </a>
+</div>
+
+
+      {productos.map(p => (
+        <div key={p.id} className="mb-2">
+          {p.nombre} - Stock: {p.stock}
+          <button onClick={() => vender(p.id)} className="ml-2 bg-green-600 text-white px-2 rounded">
+            Vender
+          </button>
+        </div>
+      ))}
+    </>
+  );
+}
+
+/* =========================
+   REPORTES
+========================= */
+function Reportes({ setVista }) {
+  const [productos, setProductos] = useState([]);
+
+  useEffect(() => {
+    setProductos(JSON.parse(localStorage.getItem("productos")) || []);
+  }, []);
+
+  const totalProductos = productos.length;
+  const totalStock = productos.reduce((acc, p) => acc + Number(p.stock), 0);
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-6">📊 Reportes</h2>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-blue-100 p-6 rounded-xl text-center">
+          <h3 className="text-lg font-bold">Productos registrados</h3>
+          <p className="text-3xl mt-2">{totalProductos}</p>
+        </div>
+
+        <div className="bg-green-100 p-6 rounded-xl text-center">
+          <h3 className="text-lg font-bold">Stock total</h3>
+          <p className="text-3xl mt-2">{totalStock}</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* =========================
+   USUARIOS
+========================= */
+function Usuarios({ setVista }) {
+  const [usuarios, setUsuarios] = useState([]);
+
+  useEffect(() => {
+    setUsuarios(JSON.parse(localStorage.getItem("usuarios")) || []);
+  }, []);
+
+  const eliminarUsuario = (email) => {
+  const data = usuarios.filter(u => u.email !== email);
+  localStorage.setItem("usuarios", JSON.stringify(data));
+  setUsuarios(data);
+};
+
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Usuarios registrados</h2>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border rounded-lg overflow-hidden">
+          <thead className="bg-purple-600 text-white">
+            <tr>
+              <th className="p-3 text-left">Correo</th>
+              <th className="p-3 text-center">Acciones</th>
+              <th classNameP="p-3 text-center"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {usuarios.map((u, index) => (
+              <tr key={index} className="border-b hover:bg-gray-100">
+                <td className="p-3">{u.email}</td>
+                <td className="p-3 text-center">
+  {u.email.includes("admin") ? "Administrador" : "Usuario"}
+</td>
+
+<td className="p-3 text-center">
+  <button
+    onClick={() => eliminarUsuario(u.email)}
+    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+  >
+    Eliminar
+  </button>
+</td>
+
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/* =========================
+   PERMISOS
+========================= */
+
+function Permisos({ setVista }) {
+  const [usuarios, setUsuarios] = useState([]);
+
+  useEffect(() => {
+    setUsuarios(JSON.parse(localStorage.getItem("usuarios")) || []);
+  }, []);
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-6">Permisos de usuarios</h2>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border border-gray-200 rounded-lg">
+          <thead className="bg-purple-600 text-white">
+            <tr>
+              <th className="p-3 text-left">Usuario</th>
+              <th className="p-3 text-center">Inventario</th>
+              <th className="p-3 text-center">Ventas</th>
+              <th className="p-3 text-center">Reportes</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {usuarios.map(u => (
+              <tr key={u.email} className="border-b">
+                <td className="p-3">{u.email}</td>
+
+                {["inventario", "ventas", "reportes"].map(p => (
+                  <td key={p} className="p-3 text-center">
+                    <input type="checkbox" defaultChecked />
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+
+/* =========================
+   APP PRINCIPAL
+========================= */
+export default function App() {
+  const [vista, setVista] = useState("home");
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem("usuarioActivo"));
+    if (u) setUsuario(u);
+  }, []);
+
+  return (
+  <div
+    className="min-h-screen flex bg-cover bg-center"
+    style={{ backgroundImage: `url(${fondo})` }}
+  >
+
+    {/* ===== MENÚ IZQUIERDO ===== */}
+    <aside className="w-64 bg-white/90 backdrop-blur-lg shadow-lg p-4 space-y-2">
+      
+      <h2 className="text-xl font-bold mb-4"> MENÚ </h2>
+
+      <ul className="space-y-2">
+
+  <li>
+    <button
+    className={`menu-btn ${vista === "home" ? "bg-blue-100 font-bold" : ""}`}
+    onClick={() => setVista("home")}
+    >
+      🏠 Inicio
+    </button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "inventario" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("inventario")}
+>
+  📦 Inventario
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "ventas" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("ventas")}
+>
+  💰 Ventas
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "reportes" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("reportes")}
+>
+  📊 Reportes
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "usuarios" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("usuarios")}
+>
+  👤 Usuarios
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "permisos" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("permisos")}
+>
+  🔐 Permisos
+</button>
+  </li>
+
+</ul>
+
+    </aside>
+
+    {/* ===== CONTENIDO PRINCIPAL ===== */}
+    <main className="flex-1 flex items-center justify-center p-6">
+
+      <div className="bg-white/90 p-6 rounded-2xl shadow-xl w-full max-w-5xl min-h-[500px]">
+
+        {vista === "home" && <Home setVista={setVista} usuario={usuario} setUsuario={setUsuario} />}
+        {vista === "login" && <Login setVista={setVista} setUsuario={setUsuario} />}
+        {vista === "inventario" && <Inventario setVista={setVista} />}
+        {vista === "ventas" && <Ventas setVista={setVista} />}
+        {vista === "reportes" && <Reportes setVista={setVista} />}
+        {vista === "usuarios" && <Usuarios setVista={setVista} />}
+        {vista === "permisos" && <Permisos setVista={setVista} />}
+
+      </div>
+    </main>
+
+  </div>
+);
+
+}
