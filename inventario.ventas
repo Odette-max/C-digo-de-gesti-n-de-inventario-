@@ -149,7 +149,7 @@ function Home({ setVista, usuario, setUsuario }) {
 
         {/* BIENVENIDA */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h1 className="text-3xl font-bold text-blue-700">
+        <h1 className="text-3xl font-bold text-black-700">
           👋 Bienvenido a Koss Jeans
         </h1>
       </div>
