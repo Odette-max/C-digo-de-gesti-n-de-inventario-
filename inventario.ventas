@@ -383,10 +383,15 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
 ========================= */
 function Ventas({ setVista }) {
   const [productos, setProductos] = useState([]);
+  const [creditos, setCreditos] = useState([]);
+const [cliente, setCliente] = useState("");
+const [abonos, setAbonos] = useState({});
+const [telefono, setTelefono] = useState("");
 
   useEffect(() => {
-    setProductos(JSON.parse(localStorage.getItem("productos")) || []);
-  }, []);
+  setProductos(JSON.parse(localStorage.getItem("productos")) || []);
+  setCreditos(JSON.parse(localStorage.getItem("creditos")) || []);
+}, []);
 
   const vender = id => {
     const data = productos.map(p =>
@@ -395,6 +400,61 @@ function Ventas({ setVista }) {
     localStorage.setItem("productos", JSON.stringify(data));
     setProductos(data);
   };
+
+  const venderCredito = (producto) => {
+  if (!cliente) return alert("Escribe nombre del cliente");
+
+  const nuevoCredito = {
+    id: Date.now(),
+    cliente,
+    telefono, 
+    producto: producto.nombre,
+    total: Number(producto.precio),
+    restante: Number(producto.precio)
+  };
+
+  const data = [...creditos, nuevoCredito];
+  setCreditos(data);
+  localStorage.setItem("creditos", JSON.stringify(data));
+
+  setCliente("");
+  setTelefono("");
+};
+
+const abonar = (id) => {
+  const monto = Number(abonos[id] || 0);
+
+  const data = creditos.map(c => {
+    if (c.id === id) {
+      const nuevoSaldo = c.restante - monto;
+      return { ...c, restante: nuevoSaldo < 0 ? 0 : nuevoSaldo };
+    }
+    return c;
+  });
+
+  setCreditos(data);
+  localStorage.setItem("creditos", JSON.stringify(data));
+
+  setAbonos({ ...abonos, [id]: "" });
+};
+
+const ordenar = campo => {
+  const ordenados = [...creditos].sort((a, b) => {
+    if (typeof a[campo] === "string")
+      return a[campo].localeCompare(b[campo]);
+
+    return a[campo] - b[campo];
+  });
+
+  setCreditos(ordenados);
+};
+
+const eliminarCredito = id => {
+  const data = creditos.filter(c => c.id !== id);
+  setCreditos(data);
+  localStorage.setItem("creditos", JSON.stringify(data));
+};
+
 
   return (
     <>
@@ -418,6 +478,21 @@ function Ventas({ setVista }) {
   </a>
 </div>
 
+      <input
+  placeholder="Nombre cliente"
+  value={cliente}
+  onChange={e => setCliente(e.target.value)}
+  className="border p-2 rounded w-full mt-2"
+/>
+
+      <input
+  type="tel"
+  placeholder="Número telefónico"
+  value={telefono}
+  onChange={(e) => setTelefono(e.target.value)}
+  className="border p-2 mb-4"
+/>
+
 
       {productos.map(p => (
         <div key={p.id} className="mb-2">
@@ -425,8 +500,80 @@ function Ventas({ setVista }) {
           <button onClick={() => vender(p.id)} className="ml-2 bg-green-600 text-white px-2 rounded">
             Vender
           </button>
+
+          <button
+  onClick={() => venderCredito(p)}
+  className="ml-2 bg-yellow-600 text-white px-2 rounded"
+>
+  Crédito
+</button>
         </div>
       ))}
+
+      <h3 className="text-xl font-bold mt-8 mb-2">Ventas a crédito</h3>
+
+<div className="overflow-x-auto">
+<table className="min-w-full border rounded-lg overflow-hidden">
+
+<thead className="bg-yellow-600 text-white">
+<tr>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("cliente")}>Cliente</th>
+<th className="p-2">Teléfono</th>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("producto")}>Producto</th>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("total")}>Total</th>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("restante")}>Saldo</th>
+<th className="p-2">Acciones</th>
+
+</tr>
+</thead>
+
+<tbody>
+{creditos.map(c => (
+<tr key={c.id} className="border-b text-center">
+
+<td className="p-2">{c.cliente}</td>
+<td className="p-2">{c.telefono || "—"}</td>
+<td className="p-2">{c.producto}</td>
+<td className="p-2">${c.total}</td>
+
+<td className={`p-2 font-bold ${c.restante === 0 ? "text-green-600" : "text-red-600"}`}>
+${c.restante}
+</td>
+
+<td className="p-2 space-x-2">
+
+<input
+placeholder="Abono"
+value={abonos[c.id] || ""}
+onChange={e =>
+  setAbonos({ ...abonos, [c.id]: e.target.value })
+}
+className="border p-1 w-20"
+/>
+
+<button
+disabled={!abonos[c.id]}
+onClick={() => abonar(c.id)}
+className="bg-blue-600 text-white px-2 rounded disabled:bg-gray-400"
+>
+Abonar
+</button>
+
+<button
+onClick={() => eliminarCredito(c.id)}
+className="bg-red-600 text-white px-2 rounded"
+>
+Eliminar
+</button>
+
+</td>
+
+</tr>
+))}
+</tbody>
+</table>
+</div>
+
     </>
   );
 }
@@ -577,6 +724,203 @@ function Permisos({ setVista }) {
   );
 }
 
+/* =========================
+   PROVEEDORES
+========================= */
+function Proveedores({ setVista }) {
+  const [proveedores, setProveedores] = useState([]);
+
+  const [nombre, setNombre] = useState("");
+  const [empresa, setEmpresa] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [direccion, setDireccion] = useState("");
+
+  useEffect(() => {
+    setProveedores(JSON.parse(localStorage.getItem("proveedores")) || []);
+  }, []);
+
+  const agregar = () => {
+    if (!nombre || !empresa) return;
+
+    const nuevo = {
+      id: Date.now(),
+      nombre,
+      empresa,
+      telefono,
+      correo,
+      direccion
+    };
+
+    const data = [...proveedores, nuevo];
+    localStorage.setItem("proveedores", JSON.stringify(data));
+    setProveedores(data);
+
+    setNombre("");
+    setEmpresa("");
+    setTelefono("");
+    setCorreo("");
+    setDireccion("");
+  };
+
+  const eliminar = id => {
+    const data = proveedores.filter(p => p.id !== id);
+    localStorage.setItem("proveedores", JSON.stringify(data));
+    setProveedores(data);
+  };
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Proveedores</h2>
+
+      {/* FORMULARIO */}
+      <div className="grid md:grid-cols-2 gap-3 mb-4">
+
+        <input className="border p-2 rounded"
+          placeholder="Nombre"
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
+        />
+
+        <input className="border p-2 rounded"
+          placeholder="Empresa"
+          value={empresa}
+          onChange={e => setEmpresa(e.target.value)}
+        />
+
+        <input className="border p-2 rounded"
+          placeholder="Teléfono"
+          value={telefono}
+          onChange={e => setTelefono(e.target.value)}
+        />
+
+        <input className="border p-2 rounded"
+          placeholder="Correo"
+          value={correo}
+          onChange={e => setCorreo(e.target.value)}
+        />
+
+        <input className="border p-2 rounded md:col-span-2"
+          placeholder="Dirección"
+          value={direccion}
+          onChange={e => setDireccion(e.target.value)}
+        />
+
+      </div>
+
+      <button
+        onClick={agregar}
+        className="bg-blue-700 text-white px-4 py-2 rounded mb-6"
+      >
+        Agregar proveedor
+      </button>
+
+      {/* TABLA */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border rounded-lg">
+          <thead className="bg-blue-700 text-white">
+            <tr>
+              <th className="p-2">Nombre</th>
+              <th className="p-2">Empresa</th>
+              <th className="p-2">Teléfono</th>
+              <th className="p-2">Correo</th>
+              <th className="p-2">Dirección</th>
+              <th className="p-2"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {proveedores.map(p => (
+              <tr key={p.id} className="border-b hover:bg-gray-100">
+                <td className="p-2">{p.nombre}</td>
+                <td className="p-2">{p.empresa}</td>
+                <td className="p-2">{p.telefono}</td>
+                <td className="p-2">{p.correo}</td>
+                <td className="p-2">{p.direccion}</td>
+
+                <td className="p-2 text-center">
+                  <button
+                    onClick={() => eliminar(p.id)}
+                    className="bg-red-600 text-white px-3 py-1 rounded"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+/* =========================
+   REABASTECER
+========================= */
+function Reabastecer({ setVista }) {
+  const [productos, setProductos] = useState([]);
+  const [cantidades, setCantidades] = useState({});
+
+  useEffect(() => {
+    setProductos(JSON.parse(localStorage.getItem("productos")) || []);
+  }, []);
+
+  const agregarStock = (id) => {
+    const cantidad = Number(cantidades[id] || 0);
+    if (cantidad <= 0) return;
+
+    const nuevos = productos.map(p =>
+      p.id === id ? { ...p, stock: Number(p.stock) + cantidad } : p
+    );
+
+    setProductos(nuevos);
+    localStorage.setItem("productos", JSON.stringify(nuevos));
+
+    setCantidades({ ...cantidades, [id]: "" });
+  };
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Reabastecer productos</h2>
+
+      {productos.map(p => (
+        <div key={p.id} className="mb-3 border p-3 rounded flex items-center gap-2">
+
+          <span className="w-40">{p.nombre}</span>
+          <span className="w-24">Stock: {p.stock}</span>
+
+          <input
+            type="number"
+            placeholder="Cantidad"
+            value={cantidades[p.id] || ""}
+            onChange={e =>
+              setCantidades({ ...cantidades, [p.id]: e.target.value })
+            }
+            className="border p-1 w-24 rounded"
+          />
+
+          <button
+            onClick={() => agregarStock(p.id)}
+            className="bg-green-600 text-white px-3 py-1 rounded"
+          >
+            Agregar
+          </button>
+
+        </div>
+      ))}
+    </>
+  );
+}
+
 
 /* =========================
    APP PRINCIPAL
@@ -657,6 +1001,25 @@ export default function App() {
 </button>
   </li>
 
+  <li>
+<button
+className={`menu-btn ${vista === "proveedores" ? "bg-blue-100 font-bold" : ""}`}
+onClick={() => setVista("proveedores")}
+>
+🚚 Proveedores
+</button>
+</li>
+
+<li>
+<button
+className={`menu-btn ${vista === "reabastecer" ? "bg-blue-100 font-bold" : ""}`}
+onClick={() => setVista("reabastecer")}
+>
+📥 Reabastecer
+</button>
+</li>
+
+
 </ul>
 
     </aside>
@@ -673,6 +1036,8 @@ export default function App() {
         {vista === "reportes" && <Reportes setVista={setVista} />}
         {vista === "usuarios" && <Usuarios setVista={setVista} />}
         {vista === "permisos" && <Permisos setVista={setVista} />}
+        {vista === "proveedores" && <Proveedores setVista={setVista} />}
+        {vista === "reabastecer" && <Reabastecer setVista={setVista} />}
 
       </div>
     </main>
