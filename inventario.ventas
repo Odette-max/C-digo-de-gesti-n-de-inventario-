@@ -217,39 +217,37 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
   const [busqueda, setBusqueda] = useState("");
   const [talla, setTalla] = useState("");
 
-  useEffect(() => {
-  const data = JSON.parse(localStorage.getItem("productos")) || [];
-  setProductos(data);
-
-  const bajos = data.filter(p => p.stock <= STOCK_BAJO);
-
-  if (bajos.length > 0) {
-    setCantidadBaja(bajos.length);
-    setMostrarAlerta(true);
-  }
+   useEffect(() => {
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data))
+    .catch(err => console.error(err));
 }, []);
 
+  const agregar = async () => {
+  if (!nombre || !precio || !stock || !talla) return;
 
+  const res = await fetch("http://localhost:3001/productos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre, precio, stock, talla })
+  });
 
-  const agregar = () => {
-    if (!nombre || !precio || !stock || !talla) return;
-    const nuevo = {
-    id: Date.now(),
-    nombre,
-    talla,
-    precio,
-    stock
-  };
-    const data = [...productos, nuevo];
-    localStorage.setItem("productos", JSON.stringify(data));
-    setProductos(data);
-    setNombre(""); setPrecio(""); setStock("");
-  };
+  const nuevo = await res.json();
+  setProductos([...productos, nuevo]);
 
-  const eliminar = (id) => {
-  const data = productos.filter(p => p.id !== id);
-  localStorage.setItem("productos", JSON.stringify(data));
-  setProductos(data);
+  setNombre("");
+  setPrecio("");
+  setStock("");
+  setTalla("");
+};
+
+  const eliminar = async (id) => {
+  await fetch(`http://localhost:3001/productos/${id}`, {
+    method: "DELETE"
+  });
+
+  setProductos(productos.filter(p => p.id !== id));
 };
 
   const productosFiltrados = productos.filter(p =>
@@ -389,8 +387,9 @@ const [abonos, setAbonos] = useState({});
 const [telefono, setTelefono] = useState("");
 
   useEffect(() => {
-  setProductos(JSON.parse(localStorage.getItem("productos")) || []);
-  setCreditos(JSON.parse(localStorage.getItem("creditos")) || []);
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
 }, []);
 
   const vender = id => {
@@ -585,8 +584,10 @@ function Reportes({ setVista }) {
   const [productos, setProductos] = useState([]);
 
   useEffect(() => {
-    setProductos(JSON.parse(localStorage.getItem("productos")) || []);
-  }, []);
+  fetch("http://localhost:3001/productos")
+  .then(res => res.json())
+  .then(data => setProductos(data));
+}, []);
 
   const totalProductos = productos.length;
   const totalStock = productos.reduce((acc, p) => acc + Number(p.stock), 0);
@@ -867,8 +868,10 @@ function Reabastecer({ setVista }) {
   const [cantidades, setCantidades] = useState({});
 
   useEffect(() => {
-    setProductos(JSON.parse(localStorage.getItem("productos")) || []);
-  }, []);
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
+}, []);
 
   const agregarStock = (id) => {
     const cantidad = Number(cantidades[id] || 0);
