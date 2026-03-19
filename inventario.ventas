@@ -44,20 +44,32 @@ function Login({ setVista, setUsuario }) {
       </h2>
 
       <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-sm">
-        <input
-          className="border p-2 w-full mb-3 rounded"
-          placeholder="Correo"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-        />
 
-        <input
-          type="password"
-          className="border p-2 w-full mb-3 rounded"
-          placeholder="Contraseña"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
+        <label htmlFor="email" className="block text-sm font-semibold mb-1">
+  Correo electrónico
+</label>
+
+<input
+  id="email"
+  type="email"
+  className="border p-2 w-full mb-3 rounded"
+  placeholder="Correo"
+  value={email}
+  onChange={e => setEmail(e.target.value)}
+/>
+
+        <label htmlFor="password" className="block text-sm font-semibold mb-1">
+  Contraseña
+</label>
+
+<input
+  id="password"
+  type="password"
+  className="border p-2 w-full mb-3 rounded"
+  placeholder="Contraseña"
+  value={password}
+  onChange={e => setPassword(e.target.value)}
+/>
 
         {msg && <p className="text-red-500 text-sm mb-2">{msg}</p>}
 
@@ -284,12 +296,40 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
 
       <h2 className="text-2xl font-bold mb-4">Inventario</h2>
 
-      <input className="border p-2 mr-2" placeholder="Producto" value={nombre} onChange={e => setNombre(e.target.value)} />
-      <input className="border p-2 mr-2" placeholder="Precio" value={precio} onChange={e => setPrecio(e.target.value)} />
-      <input className="border p-2 mr-2" placeholder="Stock" value={stock} onChange={e => setStock(e.target.value)} />
-      <input className="border p-2 mr-2" placeholder="Talla (Ej: S, M, L, 28, 30)" value={talla} onChange={e => setTalla(e.target.value)}/>
+     <div>
+      <label className="block text-gray-700 text-sm font-semibold">Producto</label>
+<input
+  className="border p-2 mr-2 mb-2"
+  value={nombre}
+  onChange={e => setNombre(e.target.value)}
+/>
+     </div>
 
-      <button onClick={agregar} className="bg-blue-700 text-white px-4 py-2 rounded">Agregar</button>
+      <div>
+      <label className="block text-gray-700 text-sm font-semibold">Precio</label>
+<input
+  className="border p-2 mr-2 mb-2"
+  value={precio}
+  onChange={e => setPrecio(e.target.value)}
+/>
+       </div>
+
+      <label className="block text 
+      text-sm font-semibold">Stock</label>
+<input
+  className="border p-2 mr-2 mb-2"
+  placeholder="Stock"
+  value={stock}
+  onChange={e => setStock(e.target.value)}
+/>
+      <label className="block text-sm font-semibold">Talla</label>
+<input
+  className="border p-2 mr-2 mb-2"
+  placeholder="Ej: S, M, L, 28, 30"
+  value={talla}
+  onChange={e => setTalla(e.target.value)}
+/>
+      <button on onClick={agregar} className="bg-blue-700 text-white px-4 py-2 rounded">Agregar</button>
       
       <input
   type="text"
@@ -392,6 +432,11 @@ const [telefono, setTelefono] = useState("");
     .then(data => setProductos(data));
 }, []);
 
+  useEffect(() => {
+  const data = JSON.parse(localStorage.getItem("creditos")) || [];
+  setCreditos(data);
+}, []);
+
   const vender = id => {
     const data = productos.map(p =>
       p.id === id && p.stock > 0 ? { ...p, stock: p.stock - 1 } : p
@@ -477,20 +522,24 @@ const eliminarCredito = id => {
   </a>
 </div>
 
+    <div>
+     <label className="block text-gray-700 text-sm font-semibold">Nombre del cliente</label>
       <input
-  placeholder="Nombre cliente"
   value={cliente}
   onChange={e => setCliente(e.target.value)}
   className="border p-2 rounded w-full mt-2"
 />
+    </div>
 
+      <div>
+      <label className="block text-gray-700 text-sm font-semibold">Numero telefónico</label>
       <input
   type="tel"
-  placeholder="Número telefónico"
   value={telefono}
   onChange={(e) => setTelefono(e.target.value)}
   className="border p-2 mb-4"
 />
+    </div>
 
 
       {productos.map(p => (
@@ -781,35 +830,50 @@ function Proveedores({ setVista }) {
       {/* FORMULARIO */}
       <div className="grid md:grid-cols-2 gap-3 mb-4">
 
-        <input className="border p-2 rounded"
-          placeholder="Nombre"
-          value={nombre}
-          onChange={e => setNombre(e.target.value)}
-        />
+        <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Nombre</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={nombre}
+      onChange={e => setNombre(e.target.value)}
+    />
+  </div>
 
-        <input className="border p-2 rounded"
-          placeholder="Empresa"
-          value={empresa}
-          onChange={e => setEmpresa(e.target.value)}
-        />
+         <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Empresa</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={empresa}
+      onChange={e => setEmpresa(e.target.value)}
+    />
+  </div>
+        
+        <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Teléfono</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={telefono}
+      onChange={e => setTelefono(e.target.value)}
+    />
+  </div>
 
-        <input className="border p-2 rounded"
-          placeholder="Teléfono"
-          value={telefono}
-          onChange={e => setTelefono(e.target.value)}
-        />
+        <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Correo</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={correo}
+      onChange={e => setCorreo(e.target.value)}
+    />
+  </div>
 
-        <input className="border p-2 rounded"
-          placeholder="Correo"
-          value={correo}
-          onChange={e => setCorreo(e.target.value)}
-        />
-
-        <input className="border p-2 rounded md:col-span-2"
-          placeholder="Dirección"
-          value={direccion}
-          onChange={e => setDireccion(e.target.value)}
-        />
+        <div className="md:col-span-2">
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Dirección</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={direccion}
+      onChange={e => setDireccion(e.target.value)}
+    />
+  </div>
 
       </div>
 
