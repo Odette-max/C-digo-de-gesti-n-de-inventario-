@@ -1,0 +1,1192 @@
+import { useState, useEffect } from "react";
+import fondo from "./assets/levis.jpg";
+import Swal from "sweetalert2";
+
+/* =========================
+   COMPONENTE LOGIN
+========================= */
+function Login({ setVista, setUsuario }) {
+  const [modo, setModo] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [msg, setMsg] = useState("");
+
+  const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+  const entrar = () => {
+    const user = usuarios.find(
+      u => u.email === email && u.password === password
+    );
+    if (!user) {
+      setMsg("Usuario o contraseña incorrectos");
+      return;
+    }
+    localStorage.setItem("usuarioActivo", JSON.stringify(user));
+    setUsuario(user);
+    setVista("home");
+  };
+
+  const registrar = () => {
+    if (usuarios.find(u => u.email === email)) {
+      setMsg("El usuario ya existe");
+      return;
+    }
+    const nuevo = { email, password };
+    localStorage.setItem("usuarios", JSON.stringify([...usuarios, nuevo]));
+    setMsg("Cuenta creada, ahora inicia sesión");
+    setModo("login");
+  };
+
+  return (
+
+    <div className="flex flex-col items-center justify-center h-full">
+      <h2 className="text-2xl font-bold text-blue-800 mb-4">
+        {modo === "login" ? "Iniciar sesión" : "Crear cuenta"}
+      </h2>
+
+      <div className="bg-white shadow-lg rounded-xl p-6 w-full max-w-sm">
+
+        <label htmlFor="email" className="block text-sm font-semibold mb-1">
+  Correo electrónico
+</label>
+
+<input
+  id="email"
+  type="email"
+  className="border p-2 w-full mb-3 rounded"
+  placeholder="Correo"
+  value={email}
+  onChange={e => setEmail(e.target.value)}
+/>
+
+        <label htmlFor="password" className="block text-sm font-semibold mb-1">
+  Contraseña
+</label>
+
+<input
+  id="password"
+  type="password"
+  className="border p-2 w-full mb-3 rounded"
+  placeholder="Contraseña"
+  value={password}
+  onChange={e => setPassword(e.target.value)}
+/>
+
+        {msg && <p className="text-red-500 text-sm mb-2">{msg}</p>}
+
+        {modo === "login" ? (
+          <button onClick={entrar} className="bg-blue-700 text-white w-full py-2 rounded">
+            Entrar
+          </button>
+        ) : (
+          <button onClick={registrar} className="bg-blue-700 text-white w-full py-2 rounded">
+            Crear cuenta
+          </button>
+        )}
+
+        <p className="text-sm text-center mt-3">
+          {modo === "login" ? "¿No tienes cuenta?" : "¿Ya tienes cuenta?"}
+          <button
+            className="text-blue-700 ml-1"
+            onClick={() => {
+              setModo(modo === "login" ? "register" : "login");
+              setMsg("");
+            }}
+          >
+            {modo === "login" ? "Crear" : "Entrar"}
+          </button>
+        </p>
+
+        <button
+          onClick={() => setVista("home")}
+          className="text-gray-400 text-sm mt-3 w-full"
+        >
+          ← Volver
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* =========================
+   COMPONENTE HOME
+========================= */
+function Home({ setVista, usuario, setUsuario }) {
+    // 🔐 Rol del usuario (simple)
+  const color = usuario?.email.includes("admin")
+    ? "bg-red-600"
+    : "bg-blue-600";
+
+  // 📅 Fecha de inicio de sesión
+  const fecha = new Date().toLocaleDateString();
+
+  const [productos, setProductos] = useState([]);
+
+const obtenerProductos = () => {
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
+};
+
+useEffect(() => {
+  obtenerProductos();
+}, []);
+
+  const totalProductos = productos.length;
+  const totalStock = productos.reduce((acc, p) => acc + Number(p.stock), 0);
+  const valorInventario = productos.reduce(
+    (acc, p) => acc + Number(p.stock) * Number(p.precio),
+    0
+  );
+
+  const cerrarSesion = () => {
+    localStorage.removeItem("usuarioActivo");
+    setUsuario(null);
+  };
+
+  function Card({ titulo, color, onClick, className = "" }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`${color} ${className} w-full h-20 text-lg font-semibold rounded-xl shadow hover:scale-105 transition`}
+    >
+      {titulo}
+    </button>
+  );
+}
+
+
+  return (
+    <div className="text-center">
+      <div className="flex justify-end mb-4">
+        {usuario ? (
+          <button onClick={cerrarSesion} className="text-red-600 border px-4 py-2 rounded">
+            Cerrar sesión
+          </button>
+        ) : (
+          <button onClick={() => setVista("login")} className="border px-4 py-2 rounded">
+            Iniciar sesión / Crear cuenta
+          </button>
+        )}
+      </div>
+
+        {/* BIENVENIDA */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <h1 className="text-3xl font-bold text-black-700">
+          👋 Bienvenido a Koss Jeans
+        </h1>
+      </div>
+
+       <p className="text-gray-500 mb-8">Sistema de Inventarios y Ventas</p>
+
+      {/* TARJETA DE USUARIO */}
+{usuario && (
+  <div className="max-w-md mx-auto mb-6 bg-white border border-gray-200 rounded-xl shadow p-4 flex items-center gap-4">
+    
+     <div
+  className={`w-12 h-12 rounded-full ${color} text-white flex items-center justify-center text-xl font-bold`}
+>
+  👤
+</div>
+
+    <div className="text-left">
+      <p className="text-sm text-gray-500">Usuario activo</p>
+      <p className="font-semibold">{usuario.email}</p>
+      <p className="text-green-600 text-xs">● Sesión activa</p>
+      <p className="text-xs text-gray-400">
+  Inicio de sesión: {fecha}
+</p>
+    </div>
+
+  </div>
+)}
+
+      {/* TARJETAS DE RESUMEN */}
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-4xl mx-auto">
+
+  <div className="bg-blue-100 text-blue-800 p-6 rounded-xl shadow">
+    <p className="text-sm">📦 Productos</p>
+    <p className="text-3xl font-bold">{totalProductos}</p>
+  </div>
+
+  <div className="bg-green-100 text-green-800 p-6 rounded-xl shadow">
+    <p className="text-sm">🧮 Stock total</p>
+    <p className="text-3xl font-bold">{totalStock}</p>
+  </div>
+
+  <div className="bg-purple-100 text-purple-800 p-6 rounded-xl shadow">
+    <p className="text-sm">💰 Valor inventario</p>
+    <p className="text-3xl font-bold">
+      ${valorInventario.toLocaleString()}
+    </p>
+  </div>
+</div>
+
+    </div>
+  );
+}
+
+/* =========================
+   INVENTARIO
+========================= */
+function Inventario({ setVista }) {
+  const STOCK_BAJO = 5;
+  const [mostrarAlerta, setMostrarAlerta] = useState(false);
+const [cantidadBaja, setCantidadBaja] = useState(0);
+  const [productos, setProductos] = useState([]);
+  const [nombre, setNombre] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [stock, setStock] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [talla, setTalla] = useState("");
+
+   const obtenerProductos = () => {
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
+};
+
+useEffect(() => {
+  obtenerProductos();
+}, []);
+
+  const agregar = async () => {
+  if (!nombre || !precio || !stock || !talla) return;
+
+  const res = await fetch("http://localhost:3001/productos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre, precio, stock, talla })
+  });
+
+  const nuevo = await res.json();
+  setProductos([...productos, nuevo]);
+
+  setNombre("");
+  setPrecio("");
+  setStock("");
+  setTalla("");
+};
+
+  const eliminar = async (id) => {
+  const result = await Swal.fire({
+    title: "¿Estás seguro?",
+    text: "No podrás revertir esto",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
+  });
+
+  if (result.isConfirmed) {
+    await fetch(`http://localhost:3001/productos/${id}`, {
+      method: "DELETE",
+    });
+
+    setProductos(productos.filter(p => p.id !== id));
+
+    Swal.fire("Eliminado", "El producto fue eliminado", "success");
+  }
+
+
+  setProductos(productos.filter(p => p.id !== id));
+};
+
+  const productosFiltrados = productos.filter(p =>
+  p.nombre.toLowerCase().includes(busqueda.toLowerCase())
+);
+
+
+
+ return (
+    <>
+{mostrarAlerta && (
+  <div className="mb-4 flex items-center justify-between bg-red-100 border-l-4 border-red-600 text-red-800 p-4 rounded-lg shadow">
+    
+    <div className="flex items-center gap-3">
+      <span className="text-2xl">⚠️</span>
+      <div>
+        <p className="font-bold">Stock bajo detectado</p>
+        <p className="text-sm">
+          Hay {cantidadBaja} producto(s) con stock crítico
+        </p>
+      </div>
+    </div>
+
+    <button
+      onClick={() => setMostrarAlerta(false)}
+      className="text-red-600 hover:text-red-800 font-bold text-xl"
+    >
+      ✕
+    </button>
+  </div>
+)}
+
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Inventario</h2>
+
+
+      <input
+  type="text"
+  placeholder="🔍 Buscar producto..."
+  value={busqueda}
+  onChange={e => setBusqueda(e.target.value)}
+  className="border p-2 rounded w-full md:w-1/3 mb-4"
+/>
+
+      <div className="overflow-x-auto mt-6">
+  <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
+    <thead className="bg-blue-700 text-white">
+      <tr>
+        <th className="p-3 text-left">Producto</th>
+        <th className="p-3 text-center">Precio</th>
+        <th className="p-3 text-center">Stock</th>
+        <th className="p-3 text-center">Talla</th>
+        <th className="p-3 text-center"></th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {productosFiltrados.map(p => (
+
+        <tr 
+        key={p.id} 
+       className={`border-b ${
+    p.stock <= STOCK_BAJO ? "bg-red-100" : "hover:bg-gray-100"
+  }`}>
+          {/* PRODUCTO */}
+  <td className="p-3">{p.nombre}</td>
+
+
+  {/* PRECIO */}
+  <td className="p-3 text-center">${p.precio}</td>
+
+   {/* STOCK (con alerta dentro, NO otra columna) */}
+  <td className="p-3 text-center">
+    {p.stock}
+    {p.stock <= 5 && (
+      <div className="text-red-600 text-xs font-semibold">
+        ⚠ Stock bajo
+      </div>
+    )}
+  </td>
+
+  {/* TALLA */}
+  <td className="p-3 text-center">{p.talla || "-"}</td>
+
+          <td className="p-3 text-center space-x-2">
+
+
+            {/* 🔴 ELIMINAR */}
+            <button
+              onClick={() => eliminar(p.id)}
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+            >
+              Eliminar
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+
+    </>
+  );
+}
+
+/* =========================
+   VENTAS
+========================= */
+function Ventas({ setVista }) {
+  const [productos, setProductos] = useState([]);
+  const [creditos, setCreditos] = useState([]);
+const [cliente, setCliente] = useState("");
+const [abonos, setAbonos] = useState({});
+const [telefono, setTelefono] = useState("");
+
+
+  useEffect(() => {
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
+}, []);
+
+
+   const vender = id => {
+    const data = productos.map(p =>
+      p.id === id && p.stock > 0 ? { ...p, stock: p.stock - 1 } : p
+    );
+    fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
+  };
+
+  const venderCredito = (producto) => {
+  if (!cliente) return alert("Escribe nombre del cliente");
+
+  const nuevoCredito = {
+    id: Date.now(),
+    cliente,
+    telefono, 
+    producto: producto.nombre,
+    total: Number(producto.precio),
+    restante: Number(producto.precio)
+  };
+
+  const data = [...creditos, nuevoCredito];
+  setCreditos(data);
+  localStorage.setItem("creditos", JSON.stringify(data));
+
+  setCliente("");
+  setTelefono("");
+};
+
+const abonar = (id) => {
+  const monto = Number(abonos[id] || 0);
+
+  const data = creditos.map(c => {
+    if (c.id === id) {
+      const nuevoSaldo = c.restante - monto;
+      return { ...c, restante: nuevoSaldo < 0 ? 0 : nuevoSaldo };
+    }
+    return c;
+  });
+
+  setCreditos(data);
+  localStorage.setItem("creditos", JSON.stringify(data));
+
+  setAbonos({ ...abonos, [id]: "" });
+};
+
+const ordenar = campo => {
+  const ordenados = [...creditos].sort((a, b) => {
+    if (typeof a[campo] === "string")
+      return a[campo].localeCompare(b[campo]);
+
+    return a[campo] - b[campo];
+  });
+
+  setCreditos(ordenados);
+};
+
+const eliminar = async (id) => {
+  const result = await Swal.fire({
+    title: "¿Estás seguro?",
+    icon: "warning",
+    showCancelButton: true,
+  });
+
+  if (result.isConfirmed) {
+    const nuevos = creditos.filter(c => c.id !== id);
+
+    setCreditos(nuevos);
+    localStorage.setItem("creditos", JSON.stringify(nuevos));
+
+    Swal.fire("Eliminado", "Crédito eliminado", "success");
+  }
+};
+
+  return (
+    <>
+
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Ventas</h2>
+
+    <div>
+     <label className="block text-gray-700 text-sm font-semibold">Nombre del cliente</label>
+      <input
+  value={cliente}
+  onChange={e => setCliente(e.target.value)}
+  className="border p-2 rounded w-full mt-2"
+/>
+    </div>
+
+      <div>
+      <label className="block text-gray-700 text-sm font-semibold">Numero telefónico</label>
+      <input
+  type="tel"
+  value={telefono}
+  onChange={(e) => setTelefono(e.target.value)}
+  className="border p-2 mb-4"
+/>
+    </div>
+
+
+      {productos.map(p => (
+        <div key={p.id} className="mb-2">
+          {p.nombre} - Stock: {p.stock}
+          <button onClick={() => vender(p.id)} className="ml-2 bg-green-600 text-white px-2 rounded">
+            Vender
+          </button>
+
+          <button
+  onClick={() => venderCredito(p)}
+  className="ml-2 bg-yellow-600 text-white px-2 rounded"
+>
+  Crédito
+</button>
+        </div>
+      ))}
+
+      <h3 className="text-xl font-bold mt-8 mb-2">Ventas a crédito</h3>
+
+<div className="overflow-x-auto">
+<table className="min-w-full border rounded-lg overflow-hidden">
+
+<thead className="bg-yellow-600 text-white">
+<tr>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("cliente")}>Cliente</th>
+<th className="p-2">Teléfono</th>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("producto")}>Producto</th>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("total")}>Total</th>
+<th className="p-2 cursor-pointer" onClick={() => ordenar("restante")}>Saldo</th>
+<th className="p-2">Acciones</th>
+
+</tr>
+</thead>
+
+<tbody>
+{creditos.map(c => (
+<tr key={c.id} className="border-b text-center">
+
+<td className="p-2">{c.cliente}</td>
+<td className="p-2">{c.telefono || "—"}</td>
+<td className="p-2">{c.producto}</td>
+<td className="p-2">${c.total}</td>
+
+<td className={`p-2 font-bold ${c.restante === 0 ? "text-green-600" : "text-red-600"}`}>
+${c.restante}
+</td>
+
+<td className="p-2 space-x-2">
+
+<input
+placeholder="Abono"
+value={abonos[c.id] || ""}
+onChange={e =>
+  setAbonos({ ...abonos, [c.id]: e.target.value })
+}
+className="border p-1 w-20"
+/>
+
+<button
+disabled={!abonos[c.id]}
+onClick={() => abonar(c.id)}
+className="bg-blue-600 text-white px-2 rounded disabled:bg-gray-400"
+>
+Abonar
+</button>
+
+<button
+onClick={() => eliminar(c.id)}
+className="bg-red-600 text-white px-2 rounded"
+>
+Eliminar
+</button>
+
+</td>
+
+</tr>
+))}
+</tbody>
+</table>
+</div>
+
+    </>
+  );
+}
+
+/* =========================
+   REPORTES
+========================= */
+function Reportes({ setVista }) {
+  const [productos, setProductos] = useState([]);
+
+
+  const obtenerProductos = () => {
+  fetch("http://localhost:3001/productos")
+    .then(res => res.json())
+    .then(data => setProductos(data));
+};
+
+
+useEffect(() => {
+  obtenerProductos();
+}, []);
+
+
+  const totalProductos = productos.length;
+  const totalStock = productos.reduce((acc, p) => acc + Number(p.stock), 0);
+
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+
+      <h2 className="text-2xl font-bold mb-6">📊 Reportes</h2>
+
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-blue-100 p-6 rounded-xl text-center">
+          <h3 className="text-lg font-bold">Productos registrados</h3>
+          <p className="text-3xl mt-2">{totalProductos}</p>
+        </div>
+
+
+        <div className="bg-green-100 p-6 rounded-xl text-center">
+          <h3 className="text-lg font-bold">Stock total</h3>
+          <p className="text-3xl mt-2">{totalStock}</p>
+        </div>
+      </div>
+    </>
+  );
+}
+
+
+/* =========================
+   USUARIOS
+========================= */
+function Usuarios({ setVista }) {
+  const [usuarios, setUsuarios] = useState([]);
+
+  useEffect(() => {
+  fetch("http://localhost:3001/usuarios")
+    .then(res => res.json())
+    .then(data => setUsuarios(data))
+    .catch(err => console.log(err));
+}, []);
+
+  const eliminar = async (id) => {
+  const result = await Swal.fire({
+    title: "¿Eliminar usuario?",
+    icon: "warning",
+    showCancelButton: true,
+  });
+
+    setUsuarios(usuarios.filter(u => u.id !== id));
+
+    Swal.fire("Eliminado", "Usuario eliminado", "success");
+  }
+};
+
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Usuarios registrados</h2>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border rounded-lg overflow-hidden">
+          <thead className="bg-purple-600 text-white">
+            <tr>
+              <th className="p-3 text-left">Correo</th>
+              <th className="p-3 text-center">Acciones</th>
+              <th className="p-3 text-center"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {usuarios.map((u, index) => (
+              <tr key={index} className="border-b hover:bg-gray-100">
+                <td className="p-3">{u.email}</td>
+                <td className="p-3 text-center">
+  {u.email.includes("admin") ? "Administrador" : "Usuario"}
+</td>
+
+<td className="p-3 text-center">
+  <button
+    onClick={() => eliminar(u.id)}
+    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+  >
+    Eliminar
+  </button>
+</td>
+
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+
+  
+
+
+/* =========================
+   PERMISOS
+========================= */
+
+function Permisos({ setVista }) {
+  const [usuarios, setUsuarios] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+
+  const permisosLista = ["inventario", "ventas", "reportes", "usuarios", "proveedores"];
+
+  useEffect(() => {
+    const data = JSON.parse(localStorage.getItem("usuarios")) || [];
+
+    // Inicializar permisos si no existen
+    const inicializados = data.map(u => ({
+      ...u,
+      rol: u.rol || "usuario",
+      permisos: u.permisos || {
+        inventario: true,
+        ventas: true,
+        reportes: true,
+        usuarios: false,
+        proveedores: false
+      }
+    }));
+
+    setUsuarios(inicializados);
+    localStorage.setItem("usuarios", JSON.stringify(inicializados));
+  }, []);
+
+  // 🔁 Cambiar permiso
+  const cambiarPermiso = (email, permiso) => {
+    const nuevos = usuarios.map(u => {
+      if (u.email === email) {
+        return {
+          ...u,
+          permisos: {
+            ...u.permisos,
+            [permiso]: !u.permisos[permiso]
+          }
+        };
+      }
+      return u;
+    });
+
+    setUsuarios(nuevos);
+    localStorage.setItem("usuarios", JSON.stringify(nuevos));
+  };
+
+  // 🔁 Cambiar rol
+  const cambiarRol = (email, rol) => {
+    const nuevos = usuarios.map(u => {
+      if (u.email === email) {
+        return {
+          ...u,
+          rol,
+          permisos:
+            rol === "admin"
+              ? {
+                  inventario: true,
+                  ventas: true,
+                  reportes: true,
+                  usuarios: true,
+                  proveedores: true
+                }
+              : u.permisos
+        };
+      }
+      return u;
+    });
+
+    setUsuarios(nuevos);
+    localStorage.setItem("usuarios", JSON.stringify(nuevos));
+  };
+
+  // 🔍 Buscar usuarios
+  const filtrados = usuarios.filter(u =>
+    u.email.toLowerCase().includes(busqueda.toLowerCase())
+  );
+
+  // 🗑 Eliminar usuario
+  const eliminar = async (email) => {
+    const result = await Swal.fire({
+      title: "¿Eliminar usuario?",
+      icon: "warning",
+      showCancelButton: true
+    });
+
+    if (result.isConfirmed) {
+      const nuevos = usuarios.filter(u => u.email !== email);
+      setUsuarios(nuevos);
+      localStorage.setItem("usuarios", JSON.stringify(nuevos));
+
+      Swal.fire("Eliminado", "Usuario eliminado", "success");
+    }
+  };
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">🔐 Permisos de usuarios</h2>
+
+      {/* 🔍 BUSCADOR */}
+      <input
+        type="text"
+        placeholder="Buscar usuario..."
+        value={busqueda}
+        onChange={e => setBusqueda(e.target.value)}
+        className="border p-2 mb-4 w-full rounded"
+      />
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full border rounded-lg overflow-hidden">
+
+          <thead className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+            <tr>
+              <th className="p-3 text-left">Usuario</th>
+              <th className="p-3 text-center">Rol</th>
+              {permisosLista.map(p => (
+                <th key={p} className="p-3 text-center capitalize">
+                  {p}
+                </th>
+              ))}
+              <th className="p-3 text-center">Acciones</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filtrados.map(u => (
+              <tr key={u.email} className="border-b hover:bg-gray-100 transition">
+
+                {/* EMAIL */}
+                <td className="p-3">{u.email}</td>
+
+                {/* ROL */}
+                <td className="p-3 text-center">
+                  <select
+                    value={u.rol}
+                    onChange={e => cambiarRol(u.email, e.target.value)}
+                    className="border rounded p-1"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="usuario">Usuario</option>
+                  </select>
+                </td>
+
+                {/* PERMISOS */}
+                {permisosLista.map(p => (
+                  <td key={p} className="p-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={u.permisos[p]}
+                      onChange={() => cambiarPermiso(u.email, p)}
+                      disabled={u.rol === "admin"} // admin no editable
+                    />
+                  </td>
+                ))}
+
+                {/* ACCIONES */}
+                <td className="p-3 text-center">
+                  <button
+                    onClick={() => eliminar(u.email)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+
+              </tr>
+            ))}
+          </tbody>
+
+        </table>
+      </div>
+    </>
+  );
+}
+
+
+/* =========================
+   PROVEEDORES
+========================= */
+function Proveedores({ setVista }) {
+  const [proveedores, setProveedores] = useState([]);
+
+  const [nombre, setNombre] = useState("");
+  const [empresa, setEmpresa] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [correo, setCorreo] = useState("");
+  const [direccion, setDireccion] = useState("");
+
+  useEffect(() => {
+    setProveedores(JSON.parse(localStorage.getItem("proveedores")) || []);
+  }, []);
+
+  const agregar = () => {
+    if (!nombre || !empresa) return;
+
+    const nuevo = {
+      id: Date.now(),
+      nombre,
+      empresa,
+      telefono,
+      correo,
+      direccion
+    };
+
+    const data = [...proveedores, nuevo];
+    localStorage.setItem("proveedores", JSON.stringify(data));
+    setProveedores(data);
+
+    setNombre("");
+    setEmpresa("");
+    setTelefono("");
+    setCorreo("");
+    setDireccion("");
+  };
+
+  const eliminar = async (id) => {
+  const result = await Swal.fire({
+    title: "¿Eliminar proveedor?",
+    icon: "warning",
+    showCancelButton: true,
+  });
+
+  if (result.isConfirmed) {
+    const nuevos = proveedores.filter(p => p.id !== id);
+
+    setProveedores(nuevos);
+    localStorage.setItem("proveedores", JSON.stringify(nuevos));
+
+    Swal.fire("Eliminado", "Proveedor eliminado", "success");
+  }
+};
+
+
+  return (
+    <>
+      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+        ← Volver
+      </button>
+
+      <h2 className="text-2xl font-bold mb-4">Proveedores</h2>
+
+      {/* FORMULARIO */}
+      <div className="grid md:grid-cols-2 gap-3 mb-4">
+
+        <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Nombre</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={nombre}
+      onChange={e => setNombre(e.target.value)}
+    />
+  </div>
+
+         <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Empresa</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={empresa}
+      onChange={e => setEmpresa(e.target.value)}
+    />
+  </div>
+        
+        <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Teléfono</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={telefono}
+      onChange={e => setTelefono(e.target.value)}
+    />
+  </div>
+
+        <div>
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Correo</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={correo}
+      onChange={e => setCorreo(e.target.value)}
+    />
+  </div>
+
+        <div className="md:col-span-2">
+    <label className="block text-gray-700 text-sm font-semibold mb-1">Dirección</label>
+    <input
+      className="border p-2 rounded w-full"
+      value={direccion}
+      onChange={e => setDireccion(e.target.value)}
+    />
+  </div>
+
+      </div>
+
+      <button
+        onClick={agregar}
+        className="bg-blue-700 text-white px-4 py-2 rounded mb-6"
+      >
+        Agregar proveedor
+      </button>
+
+      {/* TABLA */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full border rounded-lg">
+          <thead className="bg-blue-700 text-white">
+            <tr>
+              <th className="p-2">Nombre</th>
+              <th className="p-2">Empresa</th>
+              <th className="p-2">Teléfono</th>
+              <th className="p-2">Correo</th>
+              <th className="p-2">Dirección</th>
+              <th className="p-2"></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {proveedores.map(p => (
+              <tr key={p.id} className="border-b hover:bg-gray-100">
+                <td className="p-2">{p.nombre}</td>
+                <td className="p-2">{p.empresa}</td>
+                <td className="p-2">{p.telefono}</td>
+                <td className="p-2">{p.correo}</td>
+                <td className="p-2">{p.direccion}</td>
+
+                <td className="p-2 text-center">
+                  <button
+                    onClick={() => eliminar(p.id)}
+                    className="bg-red-600 text-white px-3 py-1 rounded"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+
+/* =========================
+   APP PRINCIPAL
+========================= */
+export default function App() {
+  const [vista, setVista] = useState("home");
+  const [usuario, setUsuario] = useState(null);
+
+  useEffect(() => {
+    const u = JSON.parse(localStorage.getItem("usuarioActivo"));
+    if (u) setUsuario(u);
+  }, []);
+
+  return (
+  <div
+    className="min-h-screen flex bg-cover bg-center"
+    style={{ backgroundImage: `url(${fondo})` }}
+  >
+
+    {/* ===== MENÚ IZQUIERDO ===== */}
+    <aside className="w-64 bg-white/90 backdrop-blur-lg shadow-lg p-4 space-y-2">
+      
+      <h2 className="text-xl font-bold mb-4"> MENÚ </h2>
+
+      <ul className="space-y-2">
+
+  <li>
+    <button
+    className={`menu-btn ${vista === "home" ? "bg-blue-100 font-bold" : ""}`}
+    onClick={() => setVista("home")}
+    >
+      🏠 Inicio
+    </button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "inventario" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("inventario")}
+>
+  📦 Inventario
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "ventas" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("ventas")}
+>
+  💰 Ventas
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "reportes" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("reportes")}
+>
+  📊 Reportes
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "usuarios" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("usuarios")}
+>
+  👤 Usuarios
+</button>
+  </li>
+
+  <li>
+    <button
+  className={`menu-btn ${vista === "permisos" ? "bg-blue-100 font-bold" : ""}`}
+  onClick={() => setVista("permisos")}
+>
+  🔐 Permisos
+</button>
+  </li>
+
+  <li>
+<button
+className={`menu-btn ${vista === "proveedores" ? "bg-blue-100 font-bold" : ""}`}
+onClick={() => setVista("proveedores")}
+>
+🚚 Proveedores
+</button>
+</li>
+
+</ul>
+
+    </aside>
+
+    {/* ===== CONTENIDO PRINCIPAL ===== */}
+    <main className="flex-1 flex items-center justify-center p-6">
+
+
+      <div className="bg-white/90 p-6 rounded-2xl shadow-xl w-full max-w-5xl min-h-[500px]">
+
+
+        {vista === "home" && <Home setVista={setVista} usuario={usuario} setUsuario={setUsuario} />}
+        {vista === "login" && <Login setVista={setVista} setUsuario={setUsuario} />}
+        {vista === "inventario" && <Inventario setVista={setVista} />}
+        {vista === "ventas" && <Ventas setVista={setVista} />}
+        {vista === "reportes" && <Reportes setVista={setVista} />}
+        {vista === "usuarios" && <Usuarios setVista={setVista} />}
+        {vista === "permisos" && <Permisos setVista={setVista} />}
+        {vista === "proveedores" && <Proveedores setVista={setVista} />}
+
+      </div>
+    </main>
+
+  </div>
+
+);
+
+}
