@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import fondo from "./assets/levis.jpg";
-import guiasPDF from "./assets/guias.pdf";
+import Swal from "sweetalert2";
 
 /* =========================
    COMPONENTE LOGIN
@@ -11,31 +11,56 @@ function Login({ setVista, setUsuario }) {
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
 
-  const usuarios = JSON.parse(localStorage.getItem("usuarios")) || [];
+  const entrar = async () => {
+  try {
+    const res = await fetch("http://localhost:3001/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
 
-  const entrar = () => {
-    const user = usuarios.find(
-      u => u.email === email && u.password === password
-    );
-    if (!user) {
-      setMsg("Usuario o contraseña incorrectos");
+    const data = await res.json();
+
+    if (!res.ok) {
+      setMsg(data.mensaje);
       return;
     }
-    localStorage.setItem("usuarioActivo", JSON.stringify(user));
-    setUsuario(user);
+
+    localStorage.setItem("usuarioActivo", JSON.stringify(data.usuario));
+    setUsuario(data.usuario);
     setVista("home");
-  };
 
-  const registrar = () => {
-    if (usuarios.find(u => u.email === email)) {
-      setMsg("El usuario ya existe");
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+  const registrar = async () => {
+  try {
+    const res = await fetch("http://localhost:3001/registro", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setMsg(data);
       return;
     }
-    const nuevo = { email, password };
-    localStorage.setItem("usuarios", JSON.stringify([...usuarios, nuevo]));
+
     setMsg("Cuenta creada, ahora inicia sesión");
     setModo("login");
-  };
+
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   return (
     <div className="flex flex-col items-center justify-center h-full">
@@ -190,26 +215,7 @@ function Home({ setVista, usuario, setUsuario }) {
   </div>
 )}
 
-      {/* TARJETAS DE RESUMEN */}
-<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-4xl mx-auto">
-
-  <div className="bg-blue-100 text-blue-800 p-6 rounded-xl shadow">
-    <p className="text-sm">📦 Productos</p>
-    <p className="text-3xl font-bold">{totalProductos}</p>
-  </div>
-
-  <div className="bg-green-100 text-green-800 p-6 rounded-xl shadow">
-    <p className="text-sm">🧮 Stock total</p>
-    <p className="text-3xl font-bold">{totalStock}</p>
-  </div>
-
-  <div className="bg-purple-100 text-purple-800 p-6 rounded-xl shadow">
-    <p className="text-sm">💰 Valor inventario</p>
-    <p className="text-3xl font-bold">
-      ${valorInventario.toLocaleString()}
-    </p>
-  </div>
-</div>
+      
 
     </div>
   );
@@ -229,11 +235,14 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
   const [busqueda, setBusqueda] = useState("");
   const [talla, setTalla] = useState("");
 
-   useEffect(() => {
+    const obtenerProductos = () => {
   fetch("http://localhost:3001/productos")
     .then(res => res.json())
-    .then(data => setProductos(data))
-    .catch(err => console.error(err));
+    .then(data => setProductos(data));
+};
+
+  useEffect(() => {
+  obtenerProductos();
 }, []);
 
   const agregar = async () => {
@@ -255,9 +264,26 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
 };
 
   const eliminar = async (id) => {
-  await fetch(`http://localhost:3001/productos/${id}`, {
-    method: "DELETE"
+  const result = await Swal.fire({
+    title: "¿Estás seguro?",
+    text: "No podrás revertir esto",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
   });
+
+  if (result.isConfirmed) {
+    await fetch(`http://localhost:3001/productos/${id}`, {
+      method: "DELETE",
+    });
+
+    setProductos(productos.filter(p => p.id !== id));
+
+    Swal.fire("Eliminado", "El producto fue eliminado", "success");
+  }
 
   setProductos(productos.filter(p => p.id !== id));
 };
@@ -265,6 +291,9 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
   const productosFiltrados = productos.filter(p =>
   p.nombre.toLowerCase().includes(busqueda.toLowerCase())
 );
+
+return (
+ <>
 
 {mostrarAlerta && (
   <div className="mb-4 flex items-center justify-between bg-red-100 border-l-4 border-red-600 text-red-800 p-4 rounded-lg shadow">
@@ -288,49 +317,13 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
   </div>
 )}
 
-  return (
-    <>
+
       <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
         ← Volver
       </button>
 
       <h2 className="text-2xl font-bold mb-4">Inventario</h2>
 
-     <div>
-      <label className="block text-gray-700 text-sm font-semibold">Producto</label>
-<input
-  className="border p-2 mr-2 mb-2"
-  value={nombre}
-  onChange={e => setNombre(e.target.value)}
-/>
-     </div>
-
-      <div>
-      <label className="block text-gray-700 text-sm font-semibold">Precio</label>
-<input
-  className="border p-2 mr-2 mb-2"
-  value={precio}
-  onChange={e => setPrecio(e.target.value)}
-/>
-       </div>
-
-      <label className="block text 
-      text-sm font-semibold">Stock</label>
-<input
-  className="border p-2 mr-2 mb-2"
-  placeholder="Stock"
-  value={stock}
-  onChange={e => setStock(e.target.value)}
-/>
-      <label className="block text-sm font-semibold">Talla</label>
-<input
-  className="border p-2 mr-2 mb-2"
-  placeholder="Ej: S, M, L, 28, 30"
-  value={talla}
-  onChange={e => setTalla(e.target.value)}
-/>
-      <button on onClick={agregar} className="bg-blue-700 text-white px-4 py-2 rounded">Agregar</button>
-      
       <input
   type="text"
   placeholder="🔍 Buscar producto..."
@@ -380,23 +373,7 @@ const [cantidadBaja, setCantidadBaja] = useState(0);
   <td className="p-3 text-center">{p.talla || "-"}</td>
 
           <td className="p-3 text-center space-x-2">
-            {/* 🟢 VENDER */}
-            <button
-              onClick={() => {
-                const data = productos.map(prod =>
-                  prod.id === p.id && prod.stock > 0
-                    ? { ...prod, stock: prod.stock - 1 }
-                    : prod
-                );
-
-                localStorage.setItem("productos", JSON.stringify(data));
-                setProductos(data);
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
-            >
-              Vender
-            </button>
-
+            
             {/* 🔴 ELIMINAR */}
             <button
               onClick={() => eliminar(p.id)}
@@ -432,54 +409,43 @@ const [telefono, setTelefono] = useState("");
     .then(data => setProductos(data));
 }, []);
 
-  useEffect(() => {
-  const data = JSON.parse(localStorage.getItem("creditos")) || [];
-  setCreditos(data);
-}, []);
+  const vender = async (id) => {
+  try {
+    const res = await fetch("http://localhost:3001/ventas", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        producto_id: id,
+        cantidad: 1
+      })
+    });
 
-  const vender = id => {
-    const data = productos.map(p =>
-      p.id === id && p.stock > 0 ? { ...p, stock: p.stock - 1 } : p
-    );
-    localStorage.setItem("productos", JSON.stringify(data));
-    setProductos(data);
-  };
+    const data = await res.json();
 
-  const venderCredito = (producto) => {
-  if (!cliente) return alert("Escribe nombre del cliente");
+    Swal.fire({
+      icon: "success",
+      title: "¡Venta realizada!",
+      text: data.mensaje,
+      timer: 1500,
+      showConfirmButton: false
+    });
 
-  const nuevoCredito = {
-    id: Date.now(),
-    cliente,
-    telefono, 
-    producto: producto.nombre,
-    total: Number(producto.precio),
-    restante: Number(producto.precio)
-  };
+    // 🔄 actualizar productos
+    fetch("http://localhost:3001/productos")
+      .then(res => res.json())
+      .then(data => setProductos(data));
 
-  const data = [...creditos, nuevoCredito];
-  setCreditos(data);
-  localStorage.setItem("creditos", JSON.stringify(data));
+  } catch (error) {
+    console.log(error);
 
-  setCliente("");
-  setTelefono("");
-};
-
-const abonar = (id) => {
-  const monto = Number(abonos[id] || 0);
-
-  const data = creditos.map(c => {
-    if (c.id === id) {
-      const nuevoSaldo = c.restante - monto;
-      return { ...c, restante: nuevoSaldo < 0 ? 0 : nuevoSaldo };
-    }
-    return c;
-  });
-
-  setCreditos(data);
-  localStorage.setItem("creditos", JSON.stringify(data));
-
-  setAbonos({ ...abonos, [id]: "" });
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo realizar la venta" 
+    });
+  }
 };
 
 const ordenar = campo => {
@@ -493,13 +459,6 @@ const ordenar = campo => {
   setCreditos(ordenados);
 };
 
-const eliminarCredito = id => {
-  const data = creditos.filter(c => c.id !== id);
-  setCreditos(data);
-  localStorage.setItem("creditos", JSON.stringify(data));
-};
-
-
   return (
     <>
       <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
@@ -508,271 +467,364 @@ const eliminarCredito = id => {
 
       <h2 className="text-2xl font-bold mb-4">Ventas</h2>
 
-      {/* 📄 GUIAS PDF */}
-<div className="mb-6 p-4 border rounded-xl bg-gray-50">
-  <h3 className="font-bold mb-2">📄 Guías y Documentos</h3>
-
-  <a
-    href={guiasPDF}
-    target="_blank"
-    rel="noopener noreferrer"
-    className="inline-block bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
-  >
-    📥 Ver / Descargar PDF
-  </a>
-</div>
-
-    <div>
-     <label className="block text-gray-700 text-sm font-semibold">Nombre del cliente</label>
-      <input
-  value={cliente}
-  onChange={e => setCliente(e.target.value)}
-  className="border p-2 rounded w-full mt-2"
-/>
-    </div>
-
-      <div>
-      <label className="block text-gray-700 text-sm font-semibold">Numero telefónico</label>
-      <input
-  type="tel"
-  value={telefono}
-  onChange={(e) => setTelefono(e.target.value)}
-  className="border p-2 mb-4"
-/>
-    </div>
-
-
-      {productos.map(p => (
-        <div key={p.id} className="mb-2">
-          {p.nombre} - Stock: {p.stock}
-          <button onClick={() => vender(p.id)} className="ml-2 bg-green-600 text-white px-2 rounded">
-            Vender
-          </button>
-
-          <button
-  onClick={() => venderCredito(p)}
-  className="ml-2 bg-yellow-600 text-white px-2 rounded"
->
-  Crédito
-</button>
-        </div>
-      ))}
-
-      <h3 className="text-xl font-bold mt-8 mb-2">Ventas a crédito</h3>
-
 <div className="overflow-x-auto">
-<table className="min-w-full border rounded-lg overflow-hidden">
+  <table className="min-w-full border rounded-lg overflow-hidden">
 
-<thead className="bg-yellow-600 text-white">
-<tr>
-<th className="p-2 cursor-pointer" onClick={() => ordenar("cliente")}>Cliente</th>
-<th className="p-2">Teléfono</th>
-<th className="p-2 cursor-pointer" onClick={() => ordenar("producto")}>Producto</th>
-<th className="p-2 cursor-pointer" onClick={() => ordenar("total")}>Total</th>
-<th className="p-2 cursor-pointer" onClick={() => ordenar("restante")}>Saldo</th>
-<th className="p-2">Acciones</th>
+    {/* ENCABEZADO */}
+    <thead className="bg-green-600 text-white">
+      <tr>
+        <th className="p-3 text-left">Producto</th>
+        <th className="p-3 text-center">Stock</th>
+        <th className="p-3 text-center">Acción</th>
+      </tr>
+    </thead>
 
-</tr>
-</thead>
+    {/* CUERPO */}
+    <tbody>
+      {productos.length > 0 ? (
+        productos.map((p) => (
+          <tr key={p.id} className="border-b hover:bg-gray-100">
 
-<tbody>
-{creditos.map(c => (
-<tr key={c.id} className="border-b text-center">
+            <td className="p-3">{p.nombre}</td>
 
-<td className="p-2">{c.cliente}</td>
-<td className="p-2">{c.telefono || "—"}</td>
-<td className="p-2">{c.producto}</td>
-<td className="p-2">${c.total}</td>
+            <td className="p-3 text-center">
+              {p.stock}
+            </td>
 
-<td className={`p-2 font-bold ${c.restante === 0 ? "text-green-600" : "text-red-600"}`}>
-${c.restante}
-</td>
+            <td className="p-3 text-center">
+              <button
+                onClick={() => vender(p.id)}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+              >
+                Vender
+              </button>
+            </td>
 
-<td className="p-2 space-x-2">
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="3" className="text-center p-4">
+            No hay productos
+          </td>
+        </tr>
+      )}
+    </tbody>
 
-<input
-placeholder="Abono"
-value={abonos[c.id] || ""}
-onChange={e =>
-  setAbonos({ ...abonos, [c.id]: e.target.value })
-}
-className="border p-1 w-20"
-/>
-
-<button
-disabled={!abonos[c.id]}
-onClick={() => abonar(c.id)}
-className="bg-blue-600 text-white px-2 rounded disabled:bg-gray-400"
->
-Abonar
-</button>
-
-<button
-onClick={() => eliminarCredito(c.id)}
-className="bg-red-600 text-white px-2 rounded"
->
-Eliminar
-</button>
-
-</td>
-
-</tr>
-))}
-</tbody>
-</table>
+  </table>
 </div>
-
-    </>
+   </>
   );
-}
+  }
 
-/* =========================
-   REPORTES
+   /* =========================
+   REPORTES AVANZADOS
 ========================= */
 function Reportes({ setVista }) {
-  const [productos, setProductos] = useState([]);
+  const [tipo, setTipo] = useState("diario");
+  const [datos, setDatos] = useState({
+    totalVentas: 0,
+    totalDinero: 0,
+    promedioVenta: 0,
+    mejorDia: ""
+  });
+
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
+  const [fechaInicio, setFechaInicio] = useState("");
+  const [fechaFin, setFechaFin] = useState("");
+
+  const obtenerReporte = async (tipoSeleccionado = tipo) => {
+    try {
+      setCargando(true);
+      setError("");
+
+      let url = `http://localhost:3001/reportes?tipo=${tipoSeleccionado}`;
+
+      if (fechaInicio && fechaFin) {
+        url += `&inicio=${fechaInicio}&fin=${fechaFin}`;
+      }
+
+      const res = await fetch(url);
+
+      if (!res.ok) throw new Error("Error al obtener reporte");
+
+      const data = await res.json();
+
+      setDatos({
+        totalVentas: data.totalVentas || 0,
+        totalDinero: data.totalDinero || 0,
+        promedioVenta: data.promedioVenta || 0,
+        mejorDia: data.mejorDia || "N/A"
+      });
+
+    } catch (err) {
+      console.error(err);
+      setError("No se pudo cargar el reporte");
+    } finally {
+      setCargando(false);
+    }
+  };
 
   useEffect(() => {
-  fetch("http://localhost:3001/productos")
-  .then(res => res.json())
-  .then(data => setProductos(data));
-}, []);
-
-  const totalProductos = productos.length;
-  const totalStock = productos.reduce((acc, p) => acc + Number(p.stock), 0);
+    obtenerReporte(tipo);
+  }, [tipo]);
 
   return (
     <>
-      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+      <button
+        onClick={() => setVista("home")}
+        className="mb-4 text-blue-700"
+      >
         ← Volver
       </button>
 
-      <h2 className="text-2xl font-bold mb-6">📊 Reportes</h2>
+      <h2 className="text-2xl font-bold mb-6">
+        📊 Reportes de ventas
+      </h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-blue-100 p-6 rounded-xl text-center">
-          <h3 className="text-lg font-bold">Productos registrados</h3>
-          <p className="text-3xl mt-2">{totalProductos}</p>
-        </div>
+      {/* FILTROS */}
+      <div className="flex flex-wrap gap-4 mb-6 items-center">
+        <button
+          onClick={() => setTipo("diario")}
+          className={`px-4 py-2 rounded ${tipo === "diario" ? "bg-blue-700 text-white" : "bg-blue-200"}`}
+        >
+          Diario
+        </button>
 
-        <div className="bg-green-100 p-6 rounded-xl text-center">
-          <h3 className="text-lg font-bold">Stock total</h3>
-          <p className="text-3xl mt-2">{totalStock}</p>
-        </div>
+        <button
+          onClick={() => setTipo("semanal")}
+          className={`px-4 py-2 rounded ${tipo === "semanal" ? "bg-green-700 text-white" : "bg-green-200"}`}
+        >
+          Semanal
+        </button>
+
+        <button
+          onClick={() => setTipo("mensual")}
+          className={`px-4 py-2 rounded ${tipo === "mensual" ? "bg-purple-700 text-white" : "bg-purple-200"}`}
+        >
+          Mensual
+        </button>
+
+        {/* FECHAS */}
+        <input
+          type="date"
+          value={fechaInicio}
+          onChange={(e) => setFechaInicio(e.target.value)}
+          className="border p-2 rounded"
+        />
+
+        <input
+          type="date"
+          value={fechaFin}
+          onChange={(e) => setFechaFin(e.target.value)}
+          className="border p-2 rounded"
+        />
+
+        <button
+          onClick={() => obtenerReporte()}
+          className="bg-gray-800 text-white px-4 py-2 rounded"
+        >
+          🔍 Filtrar
+        </button>
       </div>
+
+      {/* ESTADO */}
+      {cargando && <p className="text-blue-600">Cargando reporte...</p>}
+      {error && <p className="text-red-600">{error}</p>}
+
+      {/* RESULTADOS */}
+      {!cargando && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+          <div className="bg-blue-100 p-6 rounded-xl text-center">
+            <h3 className="text-lg font-bold">Total de ventas</h3>
+            <p className="text-3xl mt-2">
+              {datos.totalVentas}
+            </p>
+          </div>
+
+          <div className="bg-green-100 p-6 rounded-xl text-center">
+            <h3 className="text-lg font-bold">Ingresos</h3>
+            <p className="text-3xl mt-2">
+              ${Number(datos.totalDinero).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-yellow-100 p-6 rounded-xl text-center">
+            <h3 className="text-lg font-bold">Promedio por venta</h3>
+            <p className="text-2xl mt-2">
+              ${Number(datos.promedioVenta).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="bg-purple-100 p-6 rounded-xl text-center">
+            <h3 className="text-lg font-bold">Mejor día</h3>
+            <p className="text-xl mt-2">
+              {datos.mejorDia}
+            </p>
+          </div>
+
+        </div>
+      )}
     </>
   );
 }
 
+
 /* =========================
-   USUARIOS
+   USUARIOS AVANZADO
 ========================= */
 function Usuarios({ setVista }) {
   const [usuarios, setUsuarios] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState("");
+
+  // 🔄 OBTENER USUARIOS
+  const obtenerUsuarios = async () => {
+    try {
+      setCargando(true);
+      setError("");
+
+      const res = await fetch("http://localhost:3001/usuarios");
+
+      if (!res.ok) throw new Error("Error al obtener usuarios");
+
+      const data = await res.json();
+      setUsuarios(data);
+
+    } catch (err) {
+      console.error(err);
+      setError("No se pudieron cargar los usuarios");
+    } finally {
+      setCargando(false);
+    }
+  };
 
   useEffect(() => {
-    setUsuarios(JSON.parse(localStorage.getItem("usuarios")) || []);
+    obtenerUsuarios();
   }, []);
 
-  const eliminarUsuario = (email) => {
-  const data = usuarios.filter(u => u.email !== email);
-  localStorage.setItem("usuarios", JSON.stringify(data));
-  setUsuarios(data);
-};
+  // 🗑️ ELIMINAR USUARIO (MYSQL)
+  const eliminarUsuario = async (email) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este usuario?")) return;
 
+    try {
+      const res = await fetch("http://localhost:3001/usuarios/" + email, {
+        method: "DELETE",
+      });
 
-  return (
-    <>
-      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
-        ← Volver
-      </button>
+      if (!res.ok) throw new Error("Error al eliminar");
 
-      <h2 className="text-2xl font-bold mb-4">Usuarios registrados</h2>
+      // 🔄 actualizar lista
+      setUsuarios(usuarios.filter(u => u.email !== email));
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border rounded-lg overflow-hidden">
-          <thead className="bg-purple-600 text-white">
-            <tr>
-              <th className="p-3 text-left">Correo</th>
-              <th className="p-3 text-center">Acciones</th>
-              <th classNameP="p-3 text-center"></th>
-            </tr>
-          </thead>
+    } catch (err) {
+      console.error(err);
+      alert("Error al eliminar usuario");
+    }
+  };
 
-          <tbody>
-            {usuarios.map((u, index) => (
-              <tr key={index} className="border-b hover:bg-gray-100">
-                <td className="p-3">{u.email}</td>
-                <td className="p-3 text-center">
-  {u.email.includes("admin") ? "Administrador" : "Usuario"}
-</td>
-
-<td className="p-3 text-center">
-  <button
-    onClick={() => eliminarUsuario(u.email)}
-    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
-  >
-    Eliminar
-  </button>
-</td>
-
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
+  // 🔍 FILTRO
+  const usuariosFiltrados = usuarios.filter(u =>
+    u.email.toLowerCase().includes(busqueda.toLowerCase())
   );
-}
-
-/* =========================
-   PERMISOS
-========================= */
-
-function Permisos({ setVista }) {
-  const [usuarios, setUsuarios] = useState([]);
-
-  useEffect(() => {
-    setUsuarios(JSON.parse(localStorage.getItem("usuarios")) || []);
-  }, []);
 
   return (
     <>
-      <button onClick={() => setVista("home")} className="mb-4 text-blue-700">
+      <button
+        onClick={() => setVista("home")}
+        className="mb-4 text-blue-700"
+      >
         ← Volver
       </button>
 
-      <h2 className="text-2xl font-bold mb-6">Permisos de usuarios</h2>
+      <h2 className="text-2xl font-bold mb-4">
+        👥 Usuarios registrados
+      </h2>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full border border-gray-200 rounded-lg">
-          <thead className="bg-purple-600 text-white">
-            <tr>
-              <th className="p-3 text-left">Usuario</th>
-              <th className="p-3 text-center">Inventario</th>
-              <th className="p-3 text-center">Ventas</th>
-              <th className="p-3 text-center">Reportes</th>
-            </tr>
-          </thead>
+      {/* BUSCADOR */}
+      <input
+        type="text"
+        placeholder="Buscar usuario..."
+        value={busqueda}
+        onChange={(e) => setBusqueda(e.target.value)}
+        className="border p-2 rounded w-full mb-4"
+      />
 
-          <tbody>
-            {usuarios.map(u => (
-              <tr key={u.email} className="border-b">
-                <td className="p-3">{u.email}</td>
+      {/* ESTADOS */}
+      {cargando && <p className="text-blue-600">Cargando usuarios...</p>}
+      {error && <p className="text-red-600">{error}</p>}
 
-                {["inventario", "ventas", "reportes"].map(p => (
-                  <td key={p} className="p-3 text-center">
-                    <input type="checkbox" defaultChecked />
+      {/* TABLA */}
+      {!cargando && !error && (
+        <div className="overflow-x-auto">
+          <table className="min-w-full border rounded-lg overflow-hidden">
+
+            <thead className="bg-purple-600 text-white">
+              <tr>
+                <th className="p-3 text-left">Correo</th>
+                <th className="p-3 text-center">Rol</th>
+                <th className="p-3 text-center">Acciones</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {usuariosFiltrados.length > 0 ? (
+                usuariosFiltrados.map((u, index) => (
+                  <tr key={index} className="border-b hover:bg-gray-100">
+
+                    <td className="p-3">{u.email}</td>
+
+                    <td className="p-3 text-center">
+                      {u.rol === "admin" ? (
+                        <span className="text-purple-700 font-bold">
+                          Administrador
+                        </span>
+                      ) : (
+                        <span className="text-gray-700">
+                          Usuario
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="p-3 text-center flex justify-center gap-2">
+
+                      <button
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
+                        onClick={() => alert("Función editar próximamente")}
+                      >
+                        Editar
+                      </button>
+
+                      <button
+                        onClick={() => eliminarUsuario(u.email)}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+                      >
+                        Eliminar
+                      </button>
+
+                    </td>
+
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="3" className="text-center p-4">
+                    No hay usuarios
                   </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </tr>
+              )}
+            </tbody>
+
+          </table>
+        </div>
+      )}
     </>
   );
 }
+
 
 /* =========================
    PROVEEDORES
@@ -787,37 +839,47 @@ function Proveedores({ setVista }) {
   const [direccion, setDireccion] = useState("");
 
   useEffect(() => {
-    setProveedores(JSON.parse(localStorage.getItem("proveedores")) || []);
-  }, []);
+  fetch("http://localhost:3001/proveedores")
+    .then(res => res.json())
+    .then(data => setProveedores(data));
+}, []);
 
-  const agregar = () => {
-    if (!nombre || !empresa) return;
+  const agregar = async () => {
+  if (!nombre || !empresa) return;
 
-    const nuevo = {
-      id: Date.now(),
+  const res = await fetch("http://localhost:3001/proveedores", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
       nombre,
       empresa,
       telefono,
       correo,
       direccion
-    };
+    })
+  });
 
-    const data = [...proveedores, nuevo];
-    localStorage.setItem("proveedores", JSON.stringify(data));
-    setProveedores(data);
+  const nuevo = await res.json();
 
-    setNombre("");
-    setEmpresa("");
-    setTelefono("");
-    setCorreo("");
-    setDireccion("");
-  };
+  setProveedores([...proveedores, nuevo]);
 
-  const eliminar = id => {
-    const data = proveedores.filter(p => p.id !== id);
-    localStorage.setItem("proveedores", JSON.stringify(data));
-    setProveedores(data);
-  };
+  setNombre("");
+  setEmpresa("");
+  setTelefono("");
+  setCorreo("");
+  setDireccion("");
+};
+
+  const eliminar = async (id) => {
+  await fetch(`http://localhost:3001/proveedores/${id}`, {
+    method: "DELETE"
+  });
+
+  setProveedores(proveedores.filter(p => p.id !== id));
+
+};
 
   return (
     <>
@@ -937,19 +999,46 @@ function Reabastecer({ setVista }) {
     .then(data => setProductos(data));
 }, []);
 
-  const agregarStock = (id) => {
-    const cantidad = Number(cantidades[id] || 0);
-    if (cantidad <= 0) return;
+  const agregarStock = async (id) => {
+  const cantidad = Number(cantidades[id] || 0);
+  if (cantidad <= 0) return;
 
-    const nuevos = productos.map(p =>
-      p.id === id ? { ...p, stock: Number(p.stock) + cantidad } : p
-    );
+  try {
+    const res = await fetch(`http://localhost:3001/productos/${id}/stock`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ cantidad })
+    });
 
-    setProductos(nuevos);
-    localStorage.setItem("productos", JSON.stringify(nuevos));
+    const data = await res.json();
+
+    Swal.fire({
+      icon: "success",
+      title: "Reabastecido",
+      text: data.mensaje,
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+    // 🔄 actualizar productos desde MySQL
+    fetch("http://localhost:3001/productos")
+      .then(res => res.json())
+      .then(data => setProductos(data));
 
     setCantidades({ ...cantidades, [id]: "" });
-  };
+
+  } catch (error) {
+    console.log(error);
+
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "No se pudo actualizar el stock"
+    });
+  }
+};
 
   return (
     <>
@@ -1060,15 +1149,6 @@ export default function App() {
   </li>
 
   <li>
-    <button
-  className={`menu-btn ${vista === "permisos" ? "bg-blue-100 font-bold" : ""}`}
-  onClick={() => setVista("permisos")}
->
-  🔐 Permisos
-</button>
-  </li>
-
-  <li>
 <button
 className={`menu-btn ${vista === "proveedores" ? "bg-blue-100 font-bold" : ""}`}
 onClick={() => setVista("proveedores")}
@@ -1102,7 +1182,6 @@ onClick={() => setVista("reabastecer")}
         {vista === "ventas" && <Ventas setVista={setVista} />}
         {vista === "reportes" && <Reportes setVista={setVista} />}
         {vista === "usuarios" && <Usuarios setVista={setVista} />}
-        {vista === "permisos" && <Permisos setVista={setVista} />}
         {vista === "proveedores" && <Proveedores setVista={setVista} />}
         {vista === "reabastecer" && <Reabastecer setVista={setVista} />}
 
