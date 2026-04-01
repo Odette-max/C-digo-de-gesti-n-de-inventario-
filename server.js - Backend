@@ -1,0 +1,368 @@
+const express = require("express");
+const mysql = require("mysql2");
+const cors = require("cors");
+
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+
+const db = mysql.createPool({
+  host: "localhost",
+  user: "root",
+  password: "90206990",
+  database: "kossdb",
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+
+db.query("SELECT 1", (err, result) => {
+  if (err) {
+    console.log("Error MySQL:", err);
+  } else {
+    console.log("MySQL conectado correctamente");
+  }
+});
+
+
+app.listen(3001,()=>console.log("Servidor corriendo"));
+
+/* =========================
+   INVENTARIO
+========================= */
+
+app.get("/productos",(req,res)=>{
+ db.query("SELECT * FROM productos",(err,result)=>{
+  res.json(result);
+ });
+});
+
+
+app.post("/productos",(req,res)=>{
+ const {nombre,precio,stock,talla}=req.body;
+
+
+ db.query(
+  "INSERT INTO productos(nombre,precio,stock,talla) VALUES (?,?,?,?)",
+  [nombre,precio,stock,talla],
+  ()=> res.json({ok:true})
+ );
+});
+
+
+app.delete("/productos/:id",(req,res)=>{
+ db.query(
+  "DELETE FROM productos WHERE id=?",
+  [req.params.id],
+  ()=> res.json({ok:true})
+ );
+ });
+
+/* =========================
+   VENTAS
+========================= */
+
+app.post("/ventas", (req, res) => {
+  const { producto_id, cantidad } = req.body;
+
+  // 1. Obtener precio del producto
+  const getProducto = "SELECT precio, stock FROM productos WHERE id = ?";
+
+  db.query(getProducto, [producto_id], (err, result) => {
+    if (err) return res.send(err);
+
+    if (result.length === 0) {
+      return res.status(404).send("Producto no encontrado");
+    }
+
+    const producto = result[0];
+
+    if (producto.stock < cantidad) {
+      return res.status(400).send("Stock insuficiente");
+    }
+
+    const total = producto.precio * cantidad;
+
+    // 2. Guardar venta
+    const insertVenta = `
+      INSERT INTO ventas (producto_id, cantidad, total)
+      VALUES (?, ?, ?)
+    `;
+
+    db.query(insertVenta, [producto_id, cantidad, total], (err2) => {
+      if (err2) return res.send(err2);
+
+      // 3. Descontar stock
+      const updateStock = `
+        UPDATE productos SET stock = stock - ?
+        WHERE id = ?
+      `;
+
+      db.query(updateStock, [cantidad, producto_id], (err3) => {
+        if (err3) return res.send(err3);
+
+        res.json({
+  mensaje: "Venta realizada correctamente",
+  ok: true
+});
+      });
+    });
+  });
+});
+
+/* =========================
+   REABASTECER
+========================= */
+
+app.put("/productos/:id/stock", (req, res) => {
+  const { id } = req.params;
+  const { cantidad } = req.body;
+
+  const sql = `
+    UPDATE productos 
+    SET stock = stock + ?
+    WHERE id = ?
+  `;
+
+  db.query(sql, [cantidad, id], (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).send("Error al actualizar stock");
+    }
+
+    res.json({
+      mensaje: "Stock actualizado correctamente"
+    });
+  });
+});
+
+/* =========================
+   PROVEEDORES
+========================= */
+
+app.get("/proveedores", (req, res) => {
+  db.query("SELECT * FROM proveedores", (err, result) => {
+    if (err) return res.send(err);
+    res.json(result);
+  });
+});
+
+app.post("/proveedores", (req, res) => {
+  const { nombre, empresa, telefono, correo, direccion } = req.body;
+
+  const sql = `
+    INSERT INTO proveedores (nombre, empresa, telefono, correo, direccion)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+  db.query(sql, [nombre, empresa, telefono, correo, direccion], (err, result) => {
+    if (err) return res.send(err);
+
+    res.json({
+      id: result.insertId,
+      nombre,
+      empresa,
+      telefono,
+      correo,
+      direccion
+    });
+  });
+});
+
+app.delete("/proveedores/:id", (req, res) => {
+  const { id } = req.params;
+
+  db.query("DELETE FROM proveedores WHERE id = ?", [id], (err) => {
+    if (err) return res.send(err);
+
+    res.send("Proveedor eliminado");
+  });
+});
+
+/* =========================
+   COMPONENTE LOGIN
+========================= */
+
+app.post("/registro", (req, res) => {
+  const { email, password } = req.body;
+
+  const sql = "INSERT INTO usuarios (email, password) VALUES (?, ?)";
+
+  db.query(sql, [email, password], (err, result) => {
+    if (err) {
+      return res.status(400).send("El usuario ya existe");
+    }
+
+    res.json({
+      mensaje: "Usuario creado correctamente"
+    });
+  });
+});
+
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  const sql = "SELECT * FROM usuarios WHERE email = ? AND password = ?";
+
+  db.query(sql, [email, password], (err, result) => {
+    if (err) return res.send(err);
+
+    if (result.length > 0) {
+      res.json({
+        ok: true,
+        usuario: result[0]
+      });
+    } else {
+      res.status(401).json({
+        ok: false,
+        mensaje: "Usuario o contraseña incorrectos"
+      });
+    }
+  });
+});
+
+
+
+  app.get("/reportes", (req, res) => {
+  const { tipo } = req.query;
+
+  let filtro = "";
+
+  if (tipo === "diario") {
+    filtro = "WHERE DATE(fecha) = CURDATE()";
+  }
+
+  if (tipo === "semanal") {
+    filtro = "WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURDATE(), 1)";
+  }
+
+  if (tipo === "mensual") {
+    filtro = "WHERE MONTH(fecha) = MONTH(CURDATE()) AND YEAR(fecha) = YEAR(CURDATE())";
+  }
+
+  const sql = `
+    SELECT COUNT(*) AS totalVentas,
+           SUM(total) AS totalDinero
+    FROM ventas
+    ${filtro}
+  `;
+
+  db.query(sql, (err, result) => {
+    if (err) return res.send(err);
+    res.json(result[0]);
+  });
+});
+
+/* =========================
+   REPORTES API
+========================= */
+
+app.get("/reportes", (req, res) => {
+  const { tipo, inicio, fin } = req.query;
+
+  let condicionFecha = "";
+
+  // 📅 FILTRO PERSONALIZADO
+  if (inicio && fin) {
+    condicionFecha = `WHERE DATE(fecha) BETWEEN '${inicio}' AND '${fin}'`;
+  } else {
+    // 📊 FILTRO POR TIPO
+    if (tipo === "diario") {
+      condicionFecha = `WHERE DATE(fecha) = CURDATE()`;
+    } 
+    else if (tipo === "semanal") {
+      condicionFecha = `WHERE YEARWEEK(fecha, 1) = YEARWEEK(CURDATE(), 1)`;
+    } 
+    else if (tipo === "mensual") {
+      condicionFecha = `WHERE MONTH(fecha) = MONTH(CURDATE()) 
+                        AND YEAR(fecha) = YEAR(CURDATE())`;
+    }
+  }
+
+  // 🔥 CONSULTA PRINCIPAL
+  const query = `
+    SELECT 
+      COUNT(*) AS totalVentas,
+      IFNULL(SUM(total), 0) AS totalDinero,
+      IFNULL(AVG(total), 0) AS promedioVenta
+    FROM ventas
+    ${condicionFecha}
+  `;
+
+  // 🏆 MEJOR DÍA
+  const mejorDiaQuery = `
+    SELECT DATE(fecha) as dia, SUM(total) as totalDia
+    FROM ventas
+    ${condicionFecha}
+    GROUP BY dia
+    ORDER BY totalDia DESC
+    LIMIT 1
+  `;
+
+  // 🔄 EJECUTAR CONSULTAS
+  db.query(query, (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ error: "Error en reporte" });
+    }
+
+    db.query(mejorDiaQuery, (err2, result2) => {
+      if (err2) {
+        console.log(err2);
+        return res.status(500).json({ error: "Error en mejor día" });
+      }
+
+      res.json({
+        totalVentas: result[0].totalVentas,
+        totalDinero: result[0].totalDinero,
+        promedioVenta: result[0].promedioVenta,
+        mejorDia: result2.length > 0 ? result2[0].dia : "Sin datos"
+      });
+    });
+  });
+});
+
+
+app.get("/usuarios", (req, res) => {
+  const query = "SELECT email, rol FROM usuarios";
+
+  db.query(query, (err, result) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({ error: "Error al obtener usuarios" });
+    }
+
+    res.json(result);
+  });
+});
+
+app.delete("/usuarios/:email", (req, res) => {
+  const { email } = req.params;
+
+  const query = "DELETE FROM usuarios WHERE email = ?";
+
+  db.query(query, [email], (err) => {
+    if (err) {
+      return res.status(500).json({ error: "Error al eliminar" });
+    }
+
+    res.json({ mensaje: "Usuario eliminado" });
+  });
+});
+
+app.post("/usuarios", (req, res) => {
+  const { email, password, rol } = req.body;
+
+  const query = "INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)";
+
+  db.query(query, [email, password, rol || "usuario"], (err) => {
+    if (err) {
+      return res.status(500).json({ error: "Error al registrar" });
+    }
+
+    res.json({ mensaje: "Usuario creado" });
+  });
+});
